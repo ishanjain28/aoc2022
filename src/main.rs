@@ -1,7 +1,6 @@
-#![feature(test)]
-extern crate test;
+use std::cmp::Reverse;
 
-const INPUTS: [&'static str; 2] = [
+const INPUTS: [&str; 2] = [
     include_str!("../inputs/sample.txt"),
     include_str!("../inputs/input.txt"),
 ];
@@ -23,12 +22,13 @@ fn main() {
     for input in INPUTS.iter() {
         let output = parse(input);
 
-        let max = output
+        let mut sets: Vec<i64> = output
             .into_iter()
             .map(|c| c.into_iter().sum::<i64>())
-            .max()
-            .unwrap();
+            .collect();
 
-        println!("{}", max);
+        sets.select_nth_unstable_by_key(2, |c| Reverse(*c));
+
+        println!("{}", sets.into_iter().take(3).sum::<i64>());
     }
 }
