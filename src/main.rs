@@ -8,19 +8,19 @@ const INPUTS: [&str; 2] = [
 
 fn parse(input: &'static str) -> impl Iterator<Item = (Move, Outcome)> {
     input.trim().lines().map(|set| {
-        let mut set = set.chars();
+        let mut set = set.bytes();
         let (a, b) = (set.next().unwrap(), set.nth(1).unwrap());
 
         let x = match a {
-            'A' => Move::Rock,
-            'B' => Move::Paper,
-            'C' => Move::Scissors,
+            b'A' => Move::Rock,
+            b'B' => Move::Paper,
+            b'C' => Move::Scissors,
             _ => unreachable!(),
         };
         let y = match b {
-            'X' => Outcome::X,
-            'Y' => Outcome::Y,
-            'Z' => Outcome::Z,
+            b'X' => Outcome::X,
+            b'Y' => Outcome::Y,
+            b'Z' => Outcome::Z,
             _ => unreachable!(),
         };
         (x, y)
