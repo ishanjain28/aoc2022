@@ -1,31 +1,30 @@
+#![feature(test)]
+extern crate test;
+
 const INPUTS: [&str; 2] = [
     include_str!("../inputs/sample.txt"),
     include_str!("../inputs/input.txt"),
 ];
 
-fn parse(input: &'static str) -> Vec<(Move, Outcome)> {
-    input
-        .trim()
-        .lines()
-        .map(|set| {
-            let set = set.trim();
-            let (a, b) = set.split_at(1);
+fn parse(input: &'static str) -> impl Iterator<Item = (Move, Outcome)> {
+    input.trim().lines().map(|set| {
+        let mut set = set.chars();
+        let (a, b) = (set.next().unwrap(), set.nth(1).unwrap());
 
-            let x = match a.trim() {
-                "A" => Move::Rock,
-                "B" => Move::Paper,
-                "C" => Move::Scissors,
-                _ => unreachable!(),
-            };
-            let y = match b.trim() {
-                "X" => Outcome::X,
-                "Y" => Outcome::Y,
-                "Z" => Outcome::Z,
-                _ => unreachable!(),
-            };
-            (x, y)
-        })
-        .collect()
+        let x = match a {
+            'A' => Move::Rock,
+            'B' => Move::Paper,
+            'C' => Move::Scissors,
+            _ => unreachable!(),
+        };
+        let y = match b {
+            'X' => Outcome::X,
+            'Y' => Outcome::Y,
+            'Z' => Outcome::Z,
+            _ => unreachable!(),
+        };
+        (x, y)
+    })
 }
 
 #[derive(Clone, Copy)]
@@ -42,7 +41,8 @@ enum Outcome {
     Z = 6,
 }
 
-fn calc_move(d1: Outcome, m1: Move) -> Move {
+#[inline]
+const fn calc_move(d1: Outcome, m1: Move) -> Move {
     match (d1, m1) {
         (Outcome::X, Move::Rock) => Move::Scissors,
         (Outcome::X, Move::Paper) => Move::Rock,
@@ -57,13 +57,27 @@ fn calc_move(d1: Outcome, m1: Move) -> Move {
 fn main() {
     for input in INPUTS.iter() {
         let output = parse(input);
-        let mut score = 0;
-
-        for (a, b) in output {
-            score += b as i32;
-            score += calc_move(b, a) as i32;
-        }
+        let score = solution(output);
 
         println!("{:?}", score);
     }
+}
+
+fn solution(input: impl Iterator<Item = (Move, Outcome)>) -> i32 {
+    let mut score = 0;
+
+    for (a, b) in input {
+        score += b as i32;
+        score += calc_move(b, a) as i32;
+    }
+    score
+}
+
+#[bench]
+fn solution_bench(b: &mut test::Bencher) {
+    b.iter(|| {
+        let input = parse(INPUTS[1]);
+        let result = solution(input);
+        test::black_box(result);
+    })
 }
