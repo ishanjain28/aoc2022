@@ -3,7 +3,7 @@ const INPUTS: [&str; 2] = [
     include_str!("../inputs/input.txt"),
 ];
 
-fn parse(input: &'static str) -> Vec<(Move, Move)> {
+fn parse(input: &'static str) -> Vec<(Move, Outcome)> {
     input
         .trim()
         .lines()
@@ -18,14 +18,10 @@ fn parse(input: &'static str) -> Vec<(Move, Move)> {
                 _ => unreachable!(),
             };
             let y = match b.trim() {
-                "X" => Move::Rock,
-                "Y" => Move::Paper,
-                "Z" => Move::Scissors,
-                v => {
-                    println!("{:?}", v);
-
-                    unreachable!();
-                }
+                "X" => Outcome::X,
+                "Y" => Outcome::Y,
+                "Z" => Outcome::Z,
+                _ => unreachable!(),
             };
             (x, y)
         })
@@ -39,17 +35,22 @@ enum Move {
     Scissors = 3,
 }
 
-fn calc_score(m1: Move, m2: Move) -> i32 {
-    match (m1, m2) {
-        (Move::Rock, Move::Rock) => 3,
-        (Move::Rock, Move::Paper) => 0,
-        (Move::Rock, Move::Scissors) => 6,
-        (Move::Paper, Move::Rock) => 6,
-        (Move::Paper, Move::Paper) => 3,
-        (Move::Paper, Move::Scissors) => 0,
-        (Move::Scissors, Move::Rock) => 0,
-        (Move::Scissors, Move::Paper) => 6,
-        (Move::Scissors, Move::Scissors) => 3,
+#[derive(Clone, Copy)]
+enum Outcome {
+    X = 0,
+    Y = 3,
+    Z = 6,
+}
+
+fn calc_move(d1: Outcome, m1: Move) -> Move {
+    match (d1, m1) {
+        (Outcome::X, Move::Rock) => Move::Scissors,
+        (Outcome::X, Move::Paper) => Move::Rock,
+        (Outcome::X, Move::Scissors) => Move::Paper,
+        (Outcome::Y, v) => v,
+        (Outcome::Z, Move::Rock) => Move::Paper,
+        (Outcome::Z, Move::Paper) => Move::Scissors,
+        (Outcome::Z, Move::Scissors) => Move::Rock,
     }
 }
 
@@ -60,7 +61,7 @@ fn main() {
 
         for (a, b) in output {
             score += b as i32;
-            score += calc_score(b, a);
+            score += calc_move(b, a) as i32;
         }
 
         println!("{:?}", score);
