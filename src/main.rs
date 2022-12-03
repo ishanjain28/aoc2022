@@ -51,15 +51,10 @@ fn solution(input: Vec<(&str, &str, &str)>) -> usize {
 }
 
 fn find_items(ip: &str) -> [bool; 128] {
-    let mut freq = [0; 128];
     let mut out = [false; 128];
 
     for c in ip.bytes() {
-        freq[c as usize] += 1;
-    }
-
-    for i in 0..128 {
-        out[i] = freq[i] >= 1
+        out[c as usize] = true;
     }
 
     out
