@@ -6,13 +6,10 @@ const INPUTS: [&str; 2] = [
     include_str!("../inputs/input.txt"),
 ];
 
-fn parse(input: &'static str) -> impl Iterator<Item = (&str, &str)> {
-    input.trim().lines().map(|line| {
-        let l = line.len();
-        let (a, b) = line.split_at(l / 2);
+fn parse(input: &'static str) -> Vec<(&str, &str, &str)> {
+    let lines: Vec<&str> = input.trim().lines().collect();
 
-        (a, b)
-    })
+    lines.chunks(3).map(|a| (a[0], a[1], a[2])).collect()
 }
 
 fn main() {
@@ -24,17 +21,23 @@ fn main() {
     }
 }
 
-fn solution<'a>(input: impl Iterator<Item = (&'a str, &'a str)>) -> usize {
+fn solution<'a>(input: Vec<(&'a str, &'a str, &'a str)>) -> usize {
     let mut score = 0;
 
-    for (a, b) in input {
+    for (a, b, c) in input {
         let ai = find_items(a);
         let bi = find_items(b);
+        let ci = find_items(c);
 
         let mut intersect = [false; 256];
 
-        for (i, (x, y)) in ai.into_iter().zip(bi.into_iter()).enumerate() {
-            if x & y {
+        for (i, ((x, y), z)) in ai
+            .into_iter()
+            .zip(bi.into_iter())
+            .zip(ci.into_iter())
+            .enumerate()
+        {
+            if x & y & z {
                 intersect[i] = true;
             }
         }
