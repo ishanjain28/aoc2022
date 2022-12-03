@@ -9,7 +9,10 @@ const INPUTS: [&str; 2] = [
 fn parse(input: &'static str) -> Vec<(&str, &str, &str)> {
     let lines: Vec<&str> = input.trim().lines().collect();
 
-    lines.chunks(3).map(|a| (a[0], a[1], a[2])).collect()
+    lines
+        .chunks(3)
+        .map(|chunk| (chunk[0], chunk[1], chunk[2]))
+        .collect()
 }
 
 fn main() {
@@ -21,29 +24,16 @@ fn main() {
     }
 }
 
-fn solution<'a>(input: Vec<(&'a str, &'a str, &'a str)>) -> usize {
+fn solution(input: Vec<(&str, &str, &str)>) -> usize {
     let mut score = 0;
 
-    for (a, b, c) in input {
+    for (a, b, c) in input.into_iter() {
         let ai = find_items(a);
         let bi = find_items(b);
         let ci = find_items(c);
 
-        let mut intersect = [false; 256];
-
-        for (i, ((x, y), z)) in ai
-            .into_iter()
-            .zip(bi.into_iter())
-            .zip(ci.into_iter())
-            .enumerate()
-        {
-            if x & y & z {
-                intersect[i] = true;
-            }
-        }
-
-        for (i, v) in intersect.into_iter().enumerate() {
-            if v {
+        for i in 0..128 {
+            if ai[i] & bi[i] & ci[i] {
                 let c = i as u8 as char;
 
                 let lscore = if ('a'..='z').contains(&c) {
@@ -60,18 +50,16 @@ fn solution<'a>(input: Vec<(&'a str, &'a str, &'a str)>) -> usize {
     score
 }
 
-fn find_items(ip: &str) -> [bool; 256] {
-    let mut freq = [0; 255];
-    let mut out = [false; 256];
+fn find_items(ip: &str) -> [bool; 128] {
+    let mut freq = [0; 128];
+    let mut out = [false; 128];
 
     for c in ip.bytes() {
         freq[c as usize] += 1;
     }
 
-    for (i, v) in freq.into_iter().enumerate() {
-        if v >= 1 {
-            out[i] = true;
-        }
+    for i in 0..128 {
+        out[i] = freq[i] >= 1
     }
 
     out
