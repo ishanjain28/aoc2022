@@ -6,52 +6,13 @@ const INPUTS: [&str; 2] = [
     include_str!("../inputs/input.txt"),
 ];
 
-fn parse(input: &'static str) -> impl Iterator<Item = (Move, Outcome)> {
-    input.trim().lines().map(|set| {
-        let mut set = set.bytes();
-        let (a, b) = (set.next().unwrap(), set.nth(1).unwrap());
+fn parse(input: &'static str) -> impl Iterator<Item = (&str, &str)> {
+    input.trim().lines().map(|line| {
+        let l = line.len();
+        let (a, b) = line.split_at(l / 2);
 
-        let x = match a {
-            b'A' => Move::Rock,
-            b'B' => Move::Paper,
-            b'C' => Move::Scissors,
-            _ => unreachable!(),
-        };
-        let y = match b {
-            b'X' => Outcome::X,
-            b'Y' => Outcome::Y,
-            b'Z' => Outcome::Z,
-            _ => unreachable!(),
-        };
-        (x, y)
+        (a, b)
     })
-}
-
-#[derive(Clone, Copy)]
-enum Move {
-    Rock = 1,
-    Paper = 2,
-    Scissors = 3,
-}
-
-#[derive(Clone, Copy)]
-enum Outcome {
-    X = 0,
-    Y = 3,
-    Z = 6,
-}
-
-#[inline]
-const fn calc_move(d1: Outcome, m1: Move) -> Move {
-    match (d1, m1) {
-        (Outcome::X, Move::Rock) => Move::Scissors,
-        (Outcome::X, Move::Paper) => Move::Rock,
-        (Outcome::X, Move::Scissors) => Move::Paper,
-        (Outcome::Y, v) => v,
-        (Outcome::Z, Move::Rock) => Move::Paper,
-        (Outcome::Z, Move::Paper) => Move::Scissors,
-        (Outcome::Z, Move::Scissors) => Move::Rock,
-    }
 }
 
 fn main() {
@@ -63,14 +24,54 @@ fn main() {
     }
 }
 
-fn solution(input: impl Iterator<Item = (Move, Outcome)>) -> i32 {
+fn solution<'a>(input: impl Iterator<Item = (&'a str, &'a str)>) -> usize {
     let mut score = 0;
 
     for (a, b) in input {
-        score += b as i32;
-        score += calc_move(b, a) as i32;
+        let ai = find_items(a);
+        let bi = find_items(b);
+
+        let mut intersect = [false; 256];
+
+        for (i, (x, y)) in ai.into_iter().zip(bi.into_iter()).enumerate() {
+            if x & y {
+                intersect[i] = true;
+            }
+        }
+
+        for (i, v) in intersect.into_iter().enumerate() {
+            if v {
+                let c = i as u8 as char;
+
+                let lscore = if ('a'..='z').contains(&c) {
+                    i - 97 + 1
+                } else {
+                    i - 65 + 27
+                };
+
+                score += lscore;
+            }
+        }
     }
+
     score
+}
+
+fn find_items(ip: &str) -> [bool; 256] {
+    let mut freq = [0; 255];
+    let mut out = [false; 256];
+
+    for c in ip.bytes() {
+        freq[c as usize] += 1;
+    }
+
+    for (i, v) in freq.into_iter().enumerate() {
+        if v >= 1 {
+            out[i] = true;
+        }
+    }
+
+    out
 }
 
 #[bench]
