@@ -1,25 +1,28 @@
 #![feature(test)]
 extern crate test;
 
-const INPUTS: [&str; 2] = [
-    include_str!("../inputs/sample.txt"),
-    include_str!("../inputs/input.txt"),
+const INPUTS: [&[u8]; 2] = [
+    include_bytes!("../inputs/sample.txt"),
+    include_bytes!("../inputs/input.txt"),
 ];
 
-fn parse(input: &'static str) -> impl Iterator<Item = ((u64, u64), (u64, u64))> {
-    input.trim().lines().map(|line| {
-        let (a, b) = line.split_once(',').unwrap();
+fn parse(input: &[u8]) -> impl Iterator<Item = ((u8, u8), (u8, u8))> + '_ {
+    input
+        .split(|&c| c == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            let mut nums = line.split(|&c| c == b',').flat_map(|set| {
+                set.split(|&c| c == b'-').map(|num| {
+                    num.get(1)
+                        .map_or(num[0] - b'0', |c| (num[0] - b'0') * 10 + c - b'0')
+                })
+            });
 
-        let (ai, aj) = a.split_once('-').unwrap();
-        let ai = ai.parse::<u64>().unwrap();
-        let aj = aj.parse::<u64>().unwrap();
-
-        let (bi, bj) = b.split_once('-').unwrap();
-        let bi = bi.parse::<u64>().unwrap();
-        let bj = bj.parse::<u64>().unwrap();
-
-        ((ai, aj), (bi, bj))
-    })
+            (
+                (nums.next().unwrap(), nums.next().unwrap()),
+                (nums.next().unwrap(), nums.next().unwrap()),
+            )
+        })
 }
 
 fn main() {
@@ -31,7 +34,7 @@ fn main() {
     }
 }
 
-fn solution(input: impl Iterator<Item = ((u64, u64), (u64, u64))>) -> usize {
+fn solution(input: impl Iterator<Item = ((u8, u8), (u8, u8))>) -> usize {
     let mut score = 0;
 
     for ((a0, a1), (b0, b1)) in input {
