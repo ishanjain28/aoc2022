@@ -35,7 +35,10 @@ fn solution(input: impl Iterator<Item = ((u64, u64), (u64, u64))>) -> usize {
     let mut score = 0;
 
     for ((a0, a1), (b0, b1)) in input {
-        score += ((a0 <= b0 && a1 >= b1) || (b0 <= a0 && b1 >= a1)) as usize;
+        score += ((a0 <= b0 && a1 >= b1)
+            || (b0 <= a0 && b1 >= a1)
+            || (b0 >= a0 && b0 <= a1)
+            || (a0 >= b0 && a0 <= b1)) as usize;
     }
 
     score
