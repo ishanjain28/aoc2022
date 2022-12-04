@@ -6,23 +6,39 @@ const INPUTS: [&[u8]; 2] = [
     include_bytes!("../inputs/input.txt"),
 ];
 
-fn parse(input: &[u8]) -> impl Iterator<Item = ((u8, u8), (u8, u8))> + '_ {
+fn parse(input: &[u8]) -> Vec<((u8, u8), (u8, u8))> {
     input
         .split(|&c| c == b'\n')
         .filter(|line| !line.is_empty())
         .map(|line| {
-            let mut nums = line.split(|&c| c == b',').flat_map(|set| {
-                set.split(|&c| c == b'-').map(|num| {
-                    num.get(1)
-                        .map_or(num[0] - b'0', |c| (num[0] - b'0') * 10 + c - b'0')
-                })
-            });
+            let mut line = line.splitn(2, |&c| c == b'-');
+            let e1 = line.next().unwrap();
+
+            let rest = line.next().unwrap();
+            let mut line = rest.split(|&c| c == b',');
+            let e2 = line.next().unwrap();
+
+            let rest = line.next().unwrap();
+            let mut line = rest.splitn(2, |&x| x == b'-');
+            let e3 = line.next().unwrap();
+            let e4 = line.next().unwrap();
 
             (
-                (nums.next().unwrap(), nums.next().unwrap()),
-                (nums.next().unwrap(), nums.next().unwrap()),
+                (
+                    e1.get(1)
+                        .map_or(e1[0] - b'0', |c| ((e1[0] - b'0') * 10 + c - b'0')),
+                    e2.get(1)
+                        .map_or(e2[0] - b'0', |c| ((e2[0] - b'0') * 10 + c - b'0')),
+                ),
+                (
+                    e3.get(1)
+                        .map_or(e3[0] - b'0', |c| ((e3[0] - b'0') * 10 + c - b'0')),
+                    e4.get(1)
+                        .map_or(e4[0] - b'0', |c| ((e4[0] - b'0') * 10 + c - b'0')),
+                ),
             )
         })
+        .collect()
 }
 
 fn main() {
@@ -34,7 +50,7 @@ fn main() {
     }
 }
 
-fn solution(input: impl Iterator<Item = ((u8, u8), (u8, u8))>) -> usize {
+fn solution(input: Vec<((u8, u8), (u8, u8))>) -> usize {
     let mut score = 0;
 
     for ((a0, a1), (b0, b1)) in input {
