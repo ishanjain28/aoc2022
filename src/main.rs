@@ -58,29 +58,40 @@ fn parse(input: &[u8]) -> Stack {
     let mut instructions = vec![];
 
     while let Some(l) = line {
-        let l: Vec<u8> = l
+        let mut output = vec![];
+        for &c in l
             .iter()
             .filter(|&c| (b'0'..=b'9').contains(c) || c == &b' ')
-            .cloned()
-            .collect();
+        {
+            if c == b' ' && output.last().map_or(true, |&c| c == b' ') {
+                continue;
+            }
+            output.push(c);
+        }
 
-        if l.is_empty() {
+        if output.is_empty() {
             break;
         }
 
-        let numbers: Vec<u8> = l
-            .split(|&c| c == b' ')
-            .filter(|c| !c.is_empty())
-            .map(|c| {
-                c.get(1)
-                    .map_or(c[0] - b'0', |a| (c[0] - b'0') * 10 + a - b'0')
-            })
-            .collect();
+        let mut input = output.splitn(2, |&c| c == b' ');
+        let e1 = input.next().map_or(0, |c| {
+            c.get(1)
+                .map_or(c[0] - b'0', |a| (c[0] - b'0') * 10 + a - b'0')
+        });
+        let mut input = input.next().unwrap().splitn(2, |&c| c == b' ');
+        let e2 = input.next().map_or(0, |c| {
+            c.get(1)
+                .map_or(c[0] - b'0', |a| (c[0] - b'0') * 10 + a - b'0')
+        });
+        let e3 = input.next().map_or(0, |c| {
+            c.get(1)
+                .map_or(c[0] - b'0', |a| (c[0] - b'0') * 10 + a - b'0')
+        });
 
         instructions.push(Instruction {
-            count: numbers[0] as usize,
-            from: numbers[1] as usize,
-            to: numbers[2] as usize,
+            count: e1 as usize,
+            from: e2 as usize,
+            to: e3 as usize,
         });
 
         if let Some(r) = rest {
