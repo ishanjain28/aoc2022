@@ -93,16 +93,21 @@ fn main() {
 
 fn solution(mut input: Stack) -> String {
     for ins in input.instructions {
-        for _ in 0..ins.count {
-            if let Some(v) = input.stacks[ins.from - 1].pop() {
-                input.stacks[ins.to - 1].push(v);
-            }
+        let l = input.stacks[ins.from - 1].len();
+
+        let crates: Vec<char> = input.stacks[ins.from - 1]
+            .drain(l.saturating_sub(ins.count)..l)
+            .collect();
+
+        for c in crates {
+            input.stacks[ins.to - 1].push(c);
         }
     }
 
     input
         .stacks
         .into_iter()
+        .filter(|c| !c.is_empty())
         .map(|c| *c.last().unwrap())
         .collect()
 }
