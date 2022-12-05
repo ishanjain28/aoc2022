@@ -126,9 +126,7 @@ fn solution(mut input: Stack) -> String {
             .drain(l.saturating_sub(ins.count)..l)
             .collect();
 
-        for c in crates {
-            input.stacks[ins.to - 1].push(c);
-        }
+        input.stacks[ins.to - 1].extend(crates);
     }
 
     input
