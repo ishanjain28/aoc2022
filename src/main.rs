@@ -122,9 +122,7 @@ fn solution(mut input: Stack) -> String {
     for ins in input.instructions {
         let l = input.stacks[ins.from - 1].len();
 
-        let crates: Vec<u8> = input.stacks[ins.from - 1]
-            .drain(l.saturating_sub(ins.count)..l)
-            .collect();
+        let crates = input.stacks[ins.from - 1].split_off(l.saturating_sub(ins.count));
 
         input.stacks[ins.to - 1].extend(crates);
     }
