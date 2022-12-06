@@ -21,24 +21,15 @@ fn main() {
 }
 
 fn solution<const N: usize>(input: &[u8]) -> usize {
-    let mut buffer = [0; 26];
+    for idx in 0..input.len() - N {
+        let mut buffer = 0u32;
 
-    for &c in input.iter().take(N) {
-        buffer[(c - b'a') as usize] += 1;
-    }
+        for &c in &input[idx..(idx + N)] {
+            buffer |= 1 << (c - b'a') as usize;
+        }
 
-    if buffer.iter().all(|&c| c == 0 || c == 1) {
-        return 0;
-    }
-
-    for i in N..input.len() {
-        let c = input[i];
-        buffer[(c - b'a') as usize] += 1;
-        let last = input[i - N];
-        buffer[(last - b'a') as usize] -= 1;
-
-        if buffer.iter().all(|&c| c == 0 || c == 1) {
-            return i + 1;
+        if buffer.count_ones() as usize == N {
+            return idx + N;
         }
     }
 
