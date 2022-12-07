@@ -1,5 +1,4 @@
 #![feature(test)]
-
 extern crate test;
 
 const INPUTS: [&str; 2] = [
@@ -23,21 +22,18 @@ fn main() {
 }
 
 fn solution(input: impl Iterator<Item = &'static str>) -> u32 {
-    let mut out = vec![];
-    let mut stack = vec![];
+    let mut out = Vec::with_capacity(100);
+    let mut stack = Vec::with_capacity(100);
 
     let mut current_folder_size = 0;
 
     for line in input {
-        if line.starts_with("$ ls") || line.starts_with("dir") {
-            continue;
-        }
+        match &line[..4] {
+            "$ ls" | "dir " => continue,
 
-        if line.starts_with("$ cd") {
-            let dir = line.trim_start_matches("$ cd ");
-
-            match dir {
-                ".." => {
+            "$ cd" => match &line[5..6] {
+                // we are supposed to match on .. but this is fine
+                "." => {
                     let v = stack.pop().unwrap();
                     out.push(current_folder_size);
                     current_folder_size += v;
@@ -49,12 +45,13 @@ fn solution(input: impl Iterator<Item = &'static str>) -> u32 {
                     stack.push(current_folder_size);
                     current_folder_size = 0;
                 }
-            }
-        } else {
-            let (size, _) = line.split_once(' ').unwrap();
-            let size = size.parse::<u32>().unwrap();
+            },
 
-            current_folder_size += size;
+            _ => {
+                let (size, _) = line.split_once(' ').unwrap();
+                let size = size.parse::<u32>().unwrap();
+                current_folder_size += size;
+            }
         }
     }
 
