@@ -1,66 +1,78 @@
-#![feature(byte_slice_trim_ascii)]
 #![feature(test)]
+
 extern crate test;
 
-const INPUTS: [&[u8]; 2] = [
-    include_bytes!("../inputs/sample.txt"),
-    include_bytes!("../inputs/input.txt"),
+const INPUTS: [&str; 2] = [
+    include_str!("../inputs/sample.txt"),
+    include_str!("../inputs/input.txt"),
 ];
 
-fn parse(input: &[u8]) -> &[u8] {
-    input.trim_ascii()
+fn parse(input: &'static str) -> impl Iterator<Item = &'static str> {
+    let input = input.trim().lines();
+
+    input
 }
 
 fn main() {
     for input in INPUTS.iter() {
         let output = parse(input);
-        let score = solution::<14>(output);
+        let score = solution(output);
 
         println!("{}", score);
     }
 }
 
-fn solution<const N: usize>(input: &[u8]) -> usize {
-    for idx in 0..input.len() - N {
-        let mut buffer = 0u32;
+fn solution(input: impl Iterator<Item = &'static str>) -> u32 {
+    let mut out = vec![];
+    let mut stack = vec![];
 
-        for &c in &input[idx..(idx + N)] {
-            buffer |= 1 << (c - b'a') as usize;
+    let mut current_folder_size = 0;
+
+    for line in input {
+        if line.starts_with("$ ls") || line.starts_with("dir") {
+            continue;
         }
 
-        if buffer.count_ones() as usize == N {
-            return idx + N;
+        if line.starts_with("$ cd") {
+            let dir = line.trim_start_matches("$ cd ");
+
+            match dir {
+                ".." => {
+                    let v = stack.pop().unwrap();
+                    out.push(current_folder_size);
+                    current_folder_size += v;
+                }
+
+                "/" => continue,
+
+                _ => {
+                    stack.push(current_folder_size);
+                    current_folder_size = 0;
+                }
+            }
+        } else {
+            let (size, _) = line.split_once(' ').unwrap();
+            let size = size.parse::<u32>().unwrap();
+
+            current_folder_size += size;
         }
     }
 
-    0
+    while let Some(v) = stack.pop() {
+        out.push(current_folder_size);
+        current_folder_size += v;
+    }
+
+    out.push(current_folder_size);
+
+    out.into_iter().filter(|&c| c <= 100000).sum::<u32>()
 }
 
 #[bench]
 fn solution_bench(b: &mut test::Bencher) {
     b.iter(|| {
         let input = parse(INPUTS[1]);
-        let result = solution::<14>(input);
+        let result = solution(input);
         test::black_box(result);
     })
-}
-
-#[test]
-fn tests() {
-    assert_eq!(
-        solution::<14>("bvwbjplbgvbhsrlpgdmjqwftvncz".as_bytes()),
-        23
-    );
-    assert_eq!(
-        solution::<14>("nppdvjthqldpwncqszvftbrmjlhg".as_bytes()),
-        23
-    );
-    assert_eq!(
-        solution::<14>("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg".as_bytes()),
-        29
-    );
-    assert_eq!(
-        solution::<14>("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw".as_bytes()),
-        26
-    );
 }

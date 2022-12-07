@@ -1,1 +1,5 @@
 /target
+go.mod
+go.sum
+test.go
+test
