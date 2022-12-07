@@ -62,7 +62,14 @@ fn solution(input: impl Iterator<Item = &'static str>) -> u32 {
 
     out.push(current_folder_size);
 
-    out.into_iter().filter(|&c| c <= 100000).sum::<u32>()
+    let available_space = 70000000;
+    let required_space = 30000000;
+    let used_space = *out.last().unwrap();
+
+    out.into_iter()
+        .filter(|&c| c >= (required_space + used_space - available_space))
+        .min()
+        .unwrap()
 }
 
 #[bench]
