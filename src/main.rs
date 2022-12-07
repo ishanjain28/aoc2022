@@ -94,11 +94,11 @@ fn solution(input: impl Iterator<Item = &'static str>) -> u32 {
                     .take_while(|&c| c != b' ')
                     .fold(0u32, |a, x| a * 10 + (x - b'0') as u32);
 
-                if let Node::Directory(v) = current {
-                    v.children
-                        .entry(name.to_string())
-                        .or_insert(Node::File(fsize));
-                }
+                let Node::Directory(v) = current else {unreachable!("not a directory") };
+
+                v.children
+                    .entry(name.to_string())
+                    .or_insert(Node::File(fsize));
             }
         }
     }
