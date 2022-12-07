@@ -48,8 +48,10 @@ fn solution(input: impl Iterator<Item = &'static str>) -> u32 {
             },
 
             _ => {
-                let (size, _) = line.split_once(' ').unwrap();
-                let size = size.parse::<u32>().unwrap();
+                let size = line
+                    .bytes()
+                    .take_while(|&c| c != b' ')
+                    .fold(0u32, |a, x| a * 10 + (x - b'0') as u32);
                 current_folder_size += size;
             }
         }

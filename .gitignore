@@ -1,5 +1,5 @@
 /target
 go.mod
 go.sum
-test.go
+*.go
 test
