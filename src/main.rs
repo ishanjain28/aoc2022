@@ -105,25 +105,28 @@ fn solution(input: impl Iterator<Item = &'static str>) -> u32 {
 
     compute_dir_size(&mut tree);
 
-    part1(&tree)
+    let total = 70000000;
+    let required = 30000000;
+
+    let Node::Directory(ref root) = tree else { unreachable!("not a directory") };
+
+    let to_freeup = root.size + required - total;
+
+    part2(&tree, to_freeup)
 }
 
-fn part1(node: &Node) -> u32 {
+fn part2(node: &Node, to_freeup: u32) -> u32 {
     match node {
-        &Node::File(_) => 0,
-
-        Node::Directory(dir) => {
-            let mut sum = 0;
-            if dir.size <= 100000 {
-                sum += dir.size;
-            }
+        Node::Directory(dir) if dir.size >= to_freeup => {
+            let mut answer = dir.size;
 
             for v in dir.children.values() {
-                sum += part1(v);
+                answer = std::cmp::min(answer, part2(v, to_freeup));
             }
 
-            sum
+            answer
         }
+        _ => std::u32::MAX,
     }
 }
 
