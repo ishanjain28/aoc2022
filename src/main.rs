@@ -7,31 +7,36 @@ const INPUTS: [&[u8]; 2] = [
     include_bytes!("../inputs/input.txt"),
 ];
 
-fn parse(input: &[u8]) -> Vec<Vec<u8>> {
+fn parse<const M: usize, const N: usize>(input: &[u8]) -> [[u8; N]; M] {
+    let mut out = [[0; N]; M];
     input
         .trim_ascii()
         .split(|&c| c == b'\n')
-        .map(|line| line.iter().map(|b| b - b'0').collect())
-        .collect()
+        .enumerate()
+        .for_each(|(i, line)| {
+            line.iter().enumerate().for_each(|(j, &v)| {
+                out[i][j] = v;
+            })
+        });
+
+    out
 }
 
 fn main() {
-    for input in INPUTS.iter() {
-        let output = parse(input);
-        let score = solution(output);
+    let output = parse::<5, 5>(INPUTS[0]);
+    let score = solution::<5, 5>(output);
+    println!("{}", score);
 
-        println!("{}", score);
-    }
+    let output = parse::<99, 99>(INPUTS[1]);
+    let score = solution::<99, 99>(output);
+    println!("{}", score);
 }
 
-fn solution(input: Vec<Vec<u8>>) -> usize {
-    let m = input.len();
-    let n = input[0].len();
-
+fn solution<const M: usize, const N: usize>(input: [[u8; N]; M]) -> usize {
     let mut answer = 0;
 
-    for i in 0..m {
-        for j in 0..n {
+    for j in 0..N {
+        for i in 0..M {
             let th = input[i][j];
 
             let mut counts = [0, 0, 0, 0];
@@ -42,7 +47,7 @@ fn solution(input: Vec<Vec<u8>>) -> usize {
                 }
             }
 
-            for &v in &input[i][j + 1..n] {
+            for &v in &input[i][j + 1..N] {
                 counts[1] += 1;
                 if v >= th {
                     break;
@@ -56,7 +61,7 @@ fn solution(input: Vec<Vec<u8>>) -> usize {
                 }
             }
 
-            for row in &input[i + 1..m] {
+            for row in &input[i + 1..M] {
                 counts[3] += 1;
                 if row[j] >= th {
                     break;
@@ -72,9 +77,9 @@ fn solution(input: Vec<Vec<u8>>) -> usize {
 
 #[bench]
 fn solution_bench(b: &mut test::Bencher) {
+    let input = parse::<99, 99>(INPUTS[1]);
     b.iter(|| {
-        let input = parse(INPUTS[1]);
-        let result = solution(input);
+        let result = solution::<99, 99>(input);
         test::black_box(result);
     })
 }
