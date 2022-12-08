@@ -32,51 +32,38 @@ fn solution(input: Vec<Vec<u8>>) -> usize {
 
     for i in 0..m {
         for j in 0..n {
-            match (i, j) {
-                (0, _) => answer += 1,
-                (_, 0) => answer += 1,
-                (_, j) if j == n - 1 => answer += 1,
-                (i, _) if i == m - 1 => answer += 1,
+            let th = input[i][j];
 
-                _ => {
-                    let th = input[i][j];
-                    // l to r check
-                    if input[i][0..j].iter().all(|&h| h < th) {
-                        answer += 1;
-                        continue;
-                    }
-
-                    // r to l check
-                    if input[i][j + 1..n].iter().all(|&h| h < th) {
-                        answer += 1;
-                        continue;
-                    }
-
-                    let mut visible = true;
-                    for row in &input[0..i] {
-                        if row[j] >= th {
-                            visible = false;
-                            break;
-                        }
-                    }
-
-                    if visible {
-                        answer += 1;
-                        continue;
-                    }
-
-                    visible = true;
-                    for row in &input[i + 1..m] {
-                        if row[j] >= th {
-                            visible = false;
-                            break;
-                        }
-                    }
-                    if visible {
-                        answer += 1;
-                    }
+            let mut counts = [0, 0, 0, 0];
+            for &v in input[i][0..j].iter().rev() {
+                counts[0] += 1;
+                if v >= th {
+                    break;
                 }
             }
+
+            for &v in &input[i][j + 1..n] {
+                counts[1] += 1;
+                if v >= th {
+                    break;
+                }
+            }
+
+            for row in input[0..i].iter().rev() {
+                counts[2] += 1;
+                if row[j] >= th {
+                    break;
+                }
+            }
+
+            for row in &input[i + 1..m] {
+                counts[3] += 1;
+                if row[j] >= th {
+                    break;
+                }
+            }
+
+            answer = std::cmp::max(answer, counts[0] * counts[1] * counts[2] * counts[3]);
         }
     }
 
