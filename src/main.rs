@@ -1,30 +1,18 @@
+#![feature(byte_slice_trim_ascii)]
 #![feature(test)]
-
-use std::collections::HashMap;
 extern crate test;
 
-const INPUTS: [&str; 2] = [
-    include_str!("../inputs/sample.txt"),
-    include_str!("../inputs/input.txt"),
+const INPUTS: [&[u8]; 2] = [
+    include_bytes!("../inputs/sample.txt"),
+    include_bytes!("../inputs/input.txt"),
 ];
 
-fn parse(input: &'static str) -> impl Iterator<Item = &'static str> {
-    let input = input.trim().lines();
-
+fn parse(input: &[u8]) -> Vec<Vec<u8>> {
     input
-}
-
-#[derive(Debug)]
-enum Node {
-    File(u32),
-    Directory(Directory),
-}
-
-#[derive(Debug)]
-struct Directory {
-    children: HashMap<String, Node>,
-    parent: *mut Node,
-    size: u32,
+        .trim_ascii()
+        .split(|&c| c == b'\n')
+        .map(|line| line.iter().map(|b| b - b'0').collect())
+        .collect()
 }
 
 fn main() {
@@ -36,115 +24,63 @@ fn main() {
     }
 }
 
-fn solution(input: impl Iterator<Item = &'static str>) -> u32 {
-    let mut tree = Node::Directory(Directory {
-        children: HashMap::new(),
-        parent: std::ptr::null_mut(),
-        size: 0,
-    });
+fn solution(input: Vec<Vec<u8>>) -> usize {
+    let m = input.len();
+    let n = input[0].len();
 
-    let mut current = &mut tree;
+    let mut answer = 0;
 
-    for line in input {
-        match &line[..4] {
-            "$ ls" => continue,
-
-            "dir " => {
-                let dir = &line[4..];
-                let cptr = current as *mut Node;
-
-                let Node::Directory(Directory { children, ..}) = current else { unreachable!()};
-
-                children.insert(
-                    dir.to_string(),
-                    Node::Directory(Directory {
-                        children: HashMap::new(),
-                        parent: cptr,
-                        size: 0,
-                    }),
-                );
-            }
-
-            "$ cd" => match &line[5..6] {
-                // we are supposed to match on .. but this is fine
-                "." => {
-                    let Node::Directory(Directory { parent , .. }) = *current  else {
-                        unreachable!("current is not a directory");
-                    };
-
-                    current = unsafe { &mut *parent };
-                }
-
-                "/" => current = &mut tree,
+    for i in 0..m {
+        for j in 0..n {
+            match (i, j) {
+                (0, _) => answer += 1,
+                (_, 0) => answer += 1,
+                (_, j) if j == n - 1 => answer += 1,
+                (i, _) if i == m - 1 => answer += 1,
 
                 _ => {
-                    let dir = &line[5..];
-                    let Node::Directory(Directory { children, ..})  = current  else {
-                            unreachable!("current is not a directory");
-                        };
+                    let th = input[i][j];
+                    // l to r check
+                    if input[i][0..j].iter().all(|&h| h < th) {
+                        answer += 1;
+                        continue;
+                    }
 
-                    current = children.get_mut(dir).unwrap();
+                    // r to l check
+                    if input[i][j + 1..n].iter().all(|&h| h < th) {
+                        answer += 1;
+                        continue;
+                    }
+
+                    let mut visible = true;
+                    for row in &input[0..i] {
+                        if row[j] >= th {
+                            visible = false;
+                            break;
+                        }
+                    }
+
+                    if visible {
+                        answer += 1;
+                        continue;
+                    }
+
+                    visible = true;
+                    for row in &input[i + 1..m] {
+                        if row[j] >= th {
+                            visible = false;
+                            break;
+                        }
+                    }
+                    if visible {
+                        answer += 1;
+                    }
                 }
-            },
-
-            _ => {
-                let (size, name) = line.split_once(' ').unwrap();
-                let fsize = size
-                    .bytes()
-                    .take_while(|&c| c != b' ')
-                    .fold(0u32, |a, x| a * 10 + (x - b'0') as u32);
-
-                let Node::Directory(v) = current else {unreachable!("not a directory") };
-
-                v.children
-                    .entry(name.to_string())
-                    .or_insert(Node::File(fsize));
             }
         }
     }
 
-    compute_dir_size(&mut tree);
-
-    let total = 70000000;
-    let required = 30000000;
-
-    let Node::Directory(ref root) = tree else { unreachable!("not a directory") };
-
-    let to_freeup = root.size + required - total;
-
-    part2(&tree, to_freeup)
-}
-
-fn part2(node: &Node, to_freeup: u32) -> u32 {
-    match node {
-        Node::Directory(dir) if dir.size >= to_freeup => {
-            let mut answer = dir.size;
-
-            for v in dir.children.values() {
-                answer = std::cmp::min(answer, part2(v, to_freeup));
-            }
-
-            answer
-        }
-        _ => std::u32::MAX,
-    }
-}
-
-fn compute_dir_size(node: &mut Node) -> u32 {
-    match node {
-        &mut Node::File(v) => v,
-
-        Node::Directory(dir) => {
-            let mut sum = 0;
-
-            for v in dir.children.values_mut() {
-                sum += compute_dir_size(v);
-            }
-
-            dir.size = sum;
-            sum
-        }
-    }
+    answer
 }
 
 #[bench]
