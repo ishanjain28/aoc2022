@@ -2,7 +2,6 @@
 #![feature(test)]
 
 use std::collections::HashSet;
-
 extern crate test;
 
 const INPUTS: [&[u8]; 2] = [
@@ -12,30 +11,31 @@ const INPUTS: [&[u8]; 2] = [
 
 #[derive(Debug)]
 enum Move {
-    R(usize),
-    L(usize),
-    U(usize),
-    D(usize),
+    R(u8),
+    L(u8),
+    U(u8),
+    D(u8),
 }
 
-fn parse(input: &[u8]) -> impl Iterator<Item = Move> + '_ {
-    input.trim_ascii().split(|&c| c == b'\n').map(|line| {
-        let (a, b) = line.split_at(1);
+fn parse(input: &[u8]) -> Vec<Move> {
+    input
+        .trim_ascii()
+        .split(|&c| c == b'\n')
+        .map(|line| {
+            let (a, b) = line.split_at(1);
 
-        let b = b
-            .iter()
-            .skip(1)
-            .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
+            let b = b.iter().skip(1).fold(0, |a, x| (a * 10) + (x - b'0'));
 
-        match &a {
-            [b'R'] => Move::R(b),
-            [b'L'] => Move::L(b),
-            [b'U'] => Move::U(b),
-            [b'D'] => Move::D(b),
+            match &a {
+                [b'R'] => Move::R(b),
+                [b'L'] => Move::L(b),
+                [b'U'] => Move::U(b),
+                [b'D'] => Move::D(b),
 
-            _ => unreachable!(),
-        }
-    })
+                _ => unreachable!(),
+            }
+        })
+        .collect()
 }
 
 fn main() {
@@ -46,26 +46,29 @@ fn main() {
     }
 }
 
-fn solution(input: impl Iterator<Item = Move>) -> usize {
-    let (mut sxh, mut syh) = (0, 0);
-    let (mut sxt, mut syt) = (0, 0);
-
-    let mut set = HashSet::with_capacity(5000);
+fn solution(input: Vec<Move>) -> usize {
+    let mut locs = [(0, 0); 10];
+    let mut set: HashSet<(i32, i32)> = HashSet::with_capacity(3000);
 
     for mmove in input {
-        let (steps, (dsxh, dsyh)): (usize, (i32, i32)) = match mmove {
+        let (steps, (dsxh, dsyh)): (u8, (i32, i32)) = match mmove {
             Move::R(v) => (v, (1, 0)),
             Move::L(v) => (v, (-1, 0)),
             Move::U(v) => (v, (0, -1)),
             Move::D(v) => (v, (0, 1)),
         };
+
         for _ in 0..steps {
-            sxh += dsxh;
-            syh += dsyh;
+            // Update Head position
+            locs[0].0 += dsxh;
+            locs[0].1 += dsyh;
 
-            (sxt, syt) = move_tail((sxh, syh), (sxt, syt));
+            // One by one, Updated position of each knot
+            for i in 1..10 {
+                locs[i] = move_tail(locs[i - 1], locs[i]);
+            }
 
-            set.insert((sxt, syt));
+            set.insert(locs[9]);
         }
     }
 
@@ -78,6 +81,7 @@ const fn move_tail((sxh, syh): (i32, i32), (sxt, syt): (i32, i32)) -> (i32, i32)
     let dy = syh - syt;
 
     if dx.abs() == 2 || dy.abs() == 2 {
+        // signum gets you 1 or -1 depending on the sign of number
         (sxt + dx.signum(), syt + dy.signum())
     } else {
         (sxt, syt)
