@@ -1,8 +1,8 @@
 #![feature(byte_slice_trim_ascii)]
 #![feature(test)]
+extern crate test;
 
 use std::collections::HashSet;
-extern crate test;
 
 const INPUTS: [&[u8]; 2] = [
     include_bytes!("../inputs/sample.txt"),
@@ -48,7 +48,8 @@ fn main() {
 
 fn solution(input: Vec<Move>) -> usize {
     let mut locs = [(0, 0); 10];
-    let mut set: HashSet<(i32, i32)> = HashSet::with_capacity(3000);
+    let mut set: HashSet<(i32, i32)> = HashSet::with_capacity_and_hasher(3000, Default::default());
+    set.insert((0, 0));
 
     for mmove in input {
         let (steps, (dsxh, dsyh)) = match mmove {
@@ -57,6 +58,8 @@ fn solution(input: Vec<Move>) -> usize {
             Move::U(v) => (v, (0, -1)),
             Move::D(v) => (v, (0, 1)),
         };
+
+        let locs9 = locs[9];
 
         for _ in 0..steps {
             // Update Head position
@@ -72,7 +75,9 @@ fn solution(input: Vec<Move>) -> usize {
                 locs[i] = loci;
             }
 
-            set.insert(locs[9]);
+            if locs9 != locs[9] {
+                set.insert(locs[9]);
+            }
         }
     }
 
