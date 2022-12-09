@@ -51,7 +51,7 @@ fn solution(input: Vec<Move>) -> usize {
     let mut set: HashSet<(i32, i32)> = HashSet::with_capacity(3000);
 
     for mmove in input {
-        let (steps, (dsxh, dsyh)): (u8, (i32, i32)) = match mmove {
+        let (steps, (dsxh, dsyh)) = match mmove {
             Move::R(v) => (v, (1, 0)),
             Move::L(v) => (v, (-1, 0)),
             Move::U(v) => (v, (0, -1)),
@@ -65,7 +65,11 @@ fn solution(input: Vec<Move>) -> usize {
 
             // One by one, Updated position of each knot
             for i in 1..10 {
-                locs[i] = move_tail(locs[i - 1], locs[i]);
+                let loci = move_tail(locs[i - 1], locs[i]);
+                if loci == locs[i] {
+                    break;
+                }
+                locs[i] = loci;
             }
 
             set.insert(locs[9]);
