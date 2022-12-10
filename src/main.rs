@@ -79,9 +79,9 @@ fn solution(input: Vec<Ins>) -> String {
     for row in answer {
         for i in 0..40 {
             if row & ((1 << 63) >> i) > 0 {
-                output.push('\u{1f49c}');
+                output.push('\u{2588}');
             } else {
-                output.push('\u{1f499}');
+                output.push(' ');
             }
         }
         output.push('\n');
