@@ -1,9 +1,9 @@
 #![feature(test)]
 extern crate test;
 
-const INPUTS: [&str; 2] = [
-    include_str!("../inputs/sample.txt"),
-    include_str!("../inputs/input.txt"),
+const INPUTS: [&[u8]; 2] = [
+    include_bytes!("../inputs/sample.txt"),
+    include_bytes!("../inputs/input.txt"),
 ];
 
 #[derive(Debug)]
@@ -12,23 +12,22 @@ enum Ins {
     Addx(i32),
 }
 
-fn parse(input: &'static str) -> Vec<Ins> {
+fn parse(input: &[u8]) -> Vec<Ins> {
     input
-        .trim()
-        .split('\n')
-        .flat_map(|line| {
-            let (a, b) = line.split_at(4);
+        .split(|&c| c == b'\n')
+        .filter(|c| !c.is_empty())
+        .flat_map(|line| match &line[0..4] {
+            [b'n', b'o', b'o', b'p'] => vec![Ins::Noop],
+            [b'a', b'd', b'd', b'x'] => {
+                let is_neg = line[5] == b'-';
+                let b: i32 = line[5..]
+                    .iter()
+                    .filter(|&&c| (b'0'..=b'9').contains(&c))
+                    .fold(0, |a, &x| (a * 10) + (x - b'0') as i32);
 
-            match a {
-                "noop" => vec![Ins::Noop],
-                "addx" => {
-                    let b = b.trim();
-                    let b: i32 = b.parse::<i32>().unwrap();
-
-                    vec![Ins::Noop, Ins::Addx(b)]
-                }
-                _ => unreachable!(),
+                vec![Ins::Noop, Ins::Addx(if is_neg { -b } else { b })]
             }
+            _ => unreachable!(),
         })
         .collect()
 }
@@ -41,33 +40,52 @@ fn main() {
     }
 }
 
-fn solution(input: Vec<Ins>) -> i32 {
+fn solution(input: Vec<Ins>) -> String {
     let mut register = 1i32;
     let mut cycle = 0;
-    let mut store = [0; 220];
+    let mut line: u64 = 0;
+    let mut sprite: u64 = 0b111 << 61;
 
+    let mut answer = Vec::with_capacity(10);
+
+    let mut i = 0;
     for ip in input.into_iter() {
+        if sprite & ((1 << 63) >> i) > 0 {
+            line |= (1 << 63) >> i;
+        }
+
         match ip {
-            Ins::Noop => {
-                store[cycle] = register;
-            }
+            Ins::Noop => {}
             Ins::Addx(v) => {
-                store[cycle] = register;
                 register += v;
+
+                sprite = (0b111 << 61) >> (register - 1);
             }
         }
         cycle += 1;
-        if cycle >= 220 {
-            break;
+        i += 1;
+
+        if cycle % 40 == 0 {
+            answer.push(line);
+            line = 0;
+            i = 0;
         }
     }
 
-    store[20 - 1] * 20
-        + store[60 - 1] * 60
-        + store[100 - 1] * 100
-        + store[140 - 1] * 140
-        + store[180 - 1] * 180
-        + store[220 - 1] * 220
+    let mut output = String::with_capacity(40 * 10);
+
+    for row in answer {
+        for i in 0..40 {
+            if row & ((1 << 63) >> i) > 0 {
+                output.push('\u{1f49c}');
+            } else {
+                output.push('\u{1f499}');
+            }
+        }
+        output.push('\n');
+    }
+
+    output
 }
 
 #[bench]
