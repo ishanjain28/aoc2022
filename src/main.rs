@@ -1,37 +1,32 @@
-#![feature(byte_slice_trim_ascii)]
 #![feature(test)]
 extern crate test;
 
-use std::collections::HashSet;
-
-const INPUTS: [&[u8]; 2] = [
-    include_bytes!("../inputs/sample.txt"),
-    include_bytes!("../inputs/input.txt"),
+const INPUTS: [&str; 2] = [
+    include_str!("../inputs/sample.txt"),
+    include_str!("../inputs/input.txt"),
 ];
 
 #[derive(Debug)]
-enum Move {
-    R(u8),
-    L(u8),
-    U(u8),
-    D(u8),
+enum Ins {
+    Noop,
+    Addx(i32),
 }
 
-fn parse(input: &[u8]) -> Vec<Move> {
+fn parse(input: &'static str) -> Vec<Ins> {
     input
-        .trim_ascii()
-        .split(|&c| c == b'\n')
-        .map(|line| {
-            let (a, b) = line.split_at(1);
+        .trim()
+        .split('\n')
+        .flat_map(|line| {
+            let (a, b) = line.split_at(4);
 
-            let b = b.iter().skip(1).fold(0, |a, x| (a * 10) + (x - b'0'));
+            match a {
+                "noop" => vec![Ins::Noop],
+                "addx" => {
+                    let b = b.trim();
+                    let b: i32 = b.parse::<i32>().unwrap();
 
-            match &a {
-                [b'R'] => Move::R(b),
-                [b'L'] => Move::L(b),
-                [b'U'] => Move::U(b),
-                [b'D'] => Move::D(b),
-
+                    vec![Ins::Noop, Ins::Addx(b)]
+                }
                 _ => unreachable!(),
             }
         })
@@ -46,55 +41,33 @@ fn main() {
     }
 }
 
-fn solution(input: Vec<Move>) -> usize {
-    let mut locs = [(0, 0); 10];
-    let mut set: HashSet<(i32, i32)> = HashSet::with_capacity_and_hasher(3000, Default::default());
-    set.insert((0, 0));
+fn solution(input: Vec<Ins>) -> i32 {
+    let mut register = 1i32;
+    let mut cycle = 0;
+    let mut store = [0; 220];
 
-    for mmove in input {
-        let (steps, (dsxh, dsyh)) = match mmove {
-            Move::R(v) => (v, (1, 0)),
-            Move::L(v) => (v, (-1, 0)),
-            Move::U(v) => (v, (0, -1)),
-            Move::D(v) => (v, (0, 1)),
-        };
-
-        let locs9 = locs[9];
-
-        for _ in 0..steps {
-            // Update Head position
-            locs[0].0 += dsxh;
-            locs[0].1 += dsyh;
-
-            // One by one, Updated position of each knot
-            for i in 1..10 {
-                let loci = move_tail(locs[i - 1], locs[i]);
-                if loci == locs[i] {
-                    break;
-                }
-                locs[i] = loci;
+    for ip in input.into_iter() {
+        match ip {
+            Ins::Noop => {
+                store[cycle] = register;
             }
-
-            if locs9 != locs[9] {
-                set.insert(locs[9]);
+            Ins::Addx(v) => {
+                store[cycle] = register;
+                register += v;
             }
+        }
+        cycle += 1;
+        if cycle >= 220 {
+            break;
         }
     }
 
-    set.len()
-}
-
-#[inline]
-const fn move_tail((sxh, syh): (i32, i32), (sxt, syt): (i32, i32)) -> (i32, i32) {
-    let dx = sxh - sxt;
-    let dy = syh - syt;
-
-    if dx.abs() == 2 || dy.abs() == 2 {
-        // signum gets you 1 or -1 depending on the sign of number
-        (sxt + dx.signum(), syt + dy.signum())
-    } else {
-        (sxt, syt)
-    }
+    store[20 - 1] * 20
+        + store[60 - 1] * 60
+        + store[100 - 1] * 100
+        + store[140 - 1] * 140
+        + store[180 - 1] * 180
+        + store[220 - 1] * 220
 }
 
 #[bench]
