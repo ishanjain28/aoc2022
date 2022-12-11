@@ -1,33 +1,87 @@
 #![feature(test)]
+
+use std::{cmp::Reverse, rc::Rc};
 extern crate test;
 
-const INPUTS: [&[u8]; 2] = [
-    include_bytes!("../inputs/sample.txt"),
-    include_bytes!("../inputs/input.txt"),
+const INPUTS: [&str; 2] = [
+    include_str!("../inputs/sample.txt"),
+    include_str!("../inputs/input.txt"),
 ];
 
-#[derive(Debug)]
-enum Ins {
-    Noop,
-    Addx(i32),
+#[derive(Clone)]
+struct Monkey {
+    items: Vec<usize>,
+    operation: Rc<Box<dyn Fn(usize) -> usize>>,
+    div_by_test: usize,
+    if_true: usize,
+    if_false: usize,
 }
 
-fn parse(input: &[u8]) -> Vec<Ins> {
+fn parse(input: &'static str) -> Vec<Monkey> {
     input
-        .split(|&c| c == b'\n')
+        .split("\n\n")
         .filter(|c| !c.is_empty())
-        .map(|line| match &line[0..4] {
-            [b'n', b'o', b'o', b'p'] => Ins::Noop,
-            [b'a', b'd', b'd', b'x'] => {
-                let is_neg = line[5] == b'-';
-                let b: i32 = line[5..]
-                    .iter()
-                    .filter(|&&c| (b'0'..=b'9').contains(&c))
-                    .fold(0, |a, &x| (a * 10) + (x - b'0') as i32);
+        .map(|set| {
+            let mut lines = set.lines().skip(1);
 
-                Ins::Addx(if is_neg { -b } else { b })
+            let sitems: Vec<usize> = lines
+                .next()
+                .unwrap()
+                .split(',')
+                .map(|c| {
+                    c.chars()
+                        .filter(|c| c.is_numeric())
+                        .fold(0, |a, x| (a * 10) + (x as u8 - b'0') as usize)
+                })
+                .collect();
+
+            let op = lines.next().unwrap();
+            let nop = op
+                .bytes()
+                .filter(|c| (b'0'..=b'9').contains(c))
+                .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
+
+            let op = move |old: usize| -> usize {
+                if op.contains("old * old") {
+                    old * old
+                } else if op.contains("old +") {
+                    old + nop
+                } else if op.contains("old *") {
+                    old * nop
+                } else {
+                    unreachable!()
+                }
+            };
+
+            let test = lines
+                .next()
+                .unwrap()
+                .bytes()
+                .filter(|c| (b'0'..=b'9').contains(c))
+                .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
+
+            let true_result = lines
+                .next()
+                .unwrap()
+                .bytes()
+                .filter(|c| (b'0'..=b'9').contains(c))
+                .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
+
+            let false_result = lines
+                .next()
+                .unwrap()
+                .bytes()
+                .filter(|c| (b'0'..=b'9').contains(c))
+                .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
+
+            Monkey {
+                items: sitems,
+                operation: Rc::new(Box::new(op)),
+                div_by_test: test,
+                if_true: true_result,
+                if_false: false_result,
             }
-            _ => unreachable!(),
+            //
         })
         .collect()
 }
@@ -40,80 +94,36 @@ fn main() {
     }
 }
 
-fn solution(input: Vec<Ins>) -> String {
-    let mut register = 1i32;
-    let mut cycle = 0;
-    let mut line: u64 = 0;
-    let mut sprite: u64 = 0b111 << 61;
+fn solution(mut input: Vec<Monkey>) -> usize {
+    let mlen = input.len();
+    let mut activity = vec![0; mlen];
 
-    let mut answer = Vec::with_capacity(10);
+    for _ in 0..20 {
+        for i in 0..mlen {
+            let monkey = &input[i].clone();
+            let ilen = monkey.items.len();
 
-    let mut i = 0;
-    for ip in input.into_iter() {
-        match ip {
-            Ins::Noop => {
-                if sprite & ((1 << 63) >> i) > 0 {
-                    line |= (1 << 63) >> i;
+            for j in 0..ilen {
+                let item = monkey.items[j];
+
+                let newwlevel = (monkey.operation)(item);
+                let calmed_down_level = newwlevel / 3;
+
+                if calmed_down_level % monkey.div_by_test == 0 {
+                    input[monkey.if_true].items.push(calmed_down_level);
+                } else {
+                    input[monkey.if_false].items.push(calmed_down_level);
                 }
 
-                cycle += 1;
-                i += 1;
-
-                if cycle % 40 == 0 {
-                    answer.push(line);
-                    line = 0;
-                    i = 0;
-                }
+                activity[i] += 1;
             }
-            Ins::Addx(v) => {
-                // Noop
-                if sprite & ((1 << 63) >> i) > 0 {
-                    line |= (1 << 63) >> i;
-                }
-
-                cycle += 1;
-                i += 1;
-
-                if cycle % 40 == 0 {
-                    answer.push(line);
-                    line = 0;
-                    i = 0;
-                }
-
-                // Add
-                if sprite & ((1 << 63) >> i) > 0 {
-                    line |= (1 << 63) >> i;
-                }
-
-                register += v;
-                sprite = (0b111 << 61) >> (register - 1);
-
-                cycle += 1;
-                i += 1;
-
-                if cycle % 40 == 0 {
-                    answer.push(line);
-                    line = 0;
-                    i = 0;
-                }
-            }
+            input[i].items.clear();
         }
     }
 
-    let mut output = String::with_capacity(40 * 10);
+    activity.select_nth_unstable_by_key(1, |c| Reverse(*c));
 
-    for row in answer {
-        for i in 0..40 {
-            if row & ((1 << 63) >> i) > 0 {
-                output.push('\u{2588}');
-            } else {
-                output.push(' ');
-            }
-        }
-        output.push('\n');
-    }
-
-    output
+    activity[0] * activity[1]
 }
 
 #[bench]
