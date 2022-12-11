@@ -21,23 +21,16 @@ fn main() {
 }
 
 fn solution(input: &[u8]) -> usize {
-    let mut buffer = [0; 26];
+    let mut buffer = 0u32;
 
-    for &c in input.iter().take(4) {
-        buffer[(c - b'a') as usize] += 1;
-    }
+    for i in 0..input.len() {
+        buffer ^= 1 << (input[i] - b'a');
 
-    if buffer.iter().all(|&c| c == 0 || c == 1) {
-        return 0;
-    }
+        if i >= 4 {
+            buffer ^= 1 << (input[i - 4] - b'a');
+        }
 
-    for i in 4..input.len() {
-        let c = input[i];
-        buffer[(c - b'a') as usize] += 1;
-        let last = input[i - 4];
-        buffer[(last - b'a') as usize] -= 1;
-
-        if buffer.iter().all(|&c| c == 0 || c == 1) {
+        if buffer.count_ones() == 4 {
             return i + 1;
         }
     }

@@ -21,15 +21,18 @@ fn main() {
 }
 
 fn solution<const N: usize>(input: &[u8]) -> usize {
-    for idx in 0..input.len() - N {
-        let mut buffer = 0u32;
+    let mut buffer = 0u32;
+    for idx in 0..input.len() {
+        // Set the bit when we enter
+        buffer ^= 1 << (input[idx] - b'a');
 
-        for &c in &input[idx..(idx + N)] {
-            buffer |= 1 << (c - b'a') as usize;
+        // Reset it when we leave
+        if idx >= N {
+            buffer ^= 1 << (input[idx - N] - b'a');
         }
 
         if buffer.count_ones() as usize == N {
-            return idx + N;
+            return idx + 1;
         }
     }
 
