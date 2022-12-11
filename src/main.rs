@@ -1,6 +1,6 @@
 #![feature(test)]
 
-use std::{cmp::Reverse, rc::Rc};
+use std::cmp::Reverse;
 extern crate test;
 
 const INPUTS: [&str; 2] = [
@@ -11,10 +11,27 @@ const INPUTS: [&str; 2] = [
 #[derive(Clone)]
 struct Monkey {
     items: Vec<usize>,
-    operation: Rc<Box<dyn Fn(usize) -> usize>>,
+    operation: Operation,
     div_by_test: usize,
     if_true: usize,
     if_false: usize,
+}
+
+#[derive(Clone, Debug, Copy)]
+enum Operation {
+    MulOld,
+    MulNop(usize),
+    AddNop(usize),
+}
+
+impl Operation {
+    fn apply(&self, v: usize) -> usize {
+        match self {
+            Operation::MulOld => v * v,
+            Operation::MulNop(i) => v * i,
+            Operation::AddNop(i) => v + i,
+        }
+    }
 }
 
 fn parse(input: &'static str) -> (Vec<Monkey>, usize) {
@@ -25,32 +42,28 @@ fn parse(input: &'static str) -> (Vec<Monkey>, usize) {
         .map(|set| {
             let mut lines = set.lines().skip(1);
 
-            let sitems: Vec<usize> = lines
-                .next()
-                .unwrap()
+            let sitems: Vec<usize> = lines.next().unwrap()[18..]
                 .split(',')
                 .map(|c| {
-                    c.chars()
-                        .filter(|c| c.is_numeric())
-                        .fold(0, |a, x| (a * 10) + (x as u8 - b'0') as usize)
+                    c.bytes()
+                        .filter(|c| (b'0'..=b'9').contains(c))
+                        .fold(0, |a, x| (a * 10) + (x - b'0') as usize)
                 })
                 .collect();
 
-            let op = lines.next().unwrap();
-            let nop = op[21..]
-                .bytes()
-                .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
-
-            let op = move |old: usize| -> usize {
-                if op.contains("old * old") {
-                    old * old
-                } else if op.contains("old +") {
-                    old + nop
-                } else if op.contains("old *") {
-                    old * nop
-                } else {
-                    unreachable!()
-                }
+            let op = match lines.next().unwrap()[23..].split_at(1) {
+                ("*", " old") => Operation::MulOld,
+                ("+", v) => Operation::AddNop(
+                    v[1..]
+                        .bytes()
+                        .fold(0, |a, x| (a * 10) + (x - b'0') as usize),
+                ),
+                ("*", v) => Operation::MulNop(
+                    v[1..]
+                        .bytes()
+                        .fold(0, |a, x| (a * 10) + (x - b'0') as usize),
+                ),
+                (_, _) => unreachable!(),
             };
 
             let test = lines.next().unwrap()[21..]
@@ -69,7 +82,7 @@ fn parse(input: &'static str) -> (Vec<Monkey>, usize) {
 
             Monkey {
                 items: sitems,
-                operation: Rc::new(Box::new(op)),
+                operation: op,
                 div_by_test: test,
                 if_true: true_result,
                 if_false: false_result,
@@ -94,10 +107,11 @@ fn solution(mut input: Vec<Monkey>, lcm: usize) -> usize {
 
     for _ in 0..10000 {
         for i in 0..mlen {
-            let monkey = &input[i].clone();
+            let monkey = input[i].clone();
+            activity[i] += monkey.items.len();
 
             for &item in monkey.items.iter() {
-                let newwlevel = (monkey.operation)(item);
+                let newwlevel = monkey.operation.apply(item);
                 let newwlevel = newwlevel % lcm;
 
                 if newwlevel % monkey.div_by_test == 0 {
@@ -105,8 +119,6 @@ fn solution(mut input: Vec<Monkey>, lcm: usize) -> usize {
                 } else {
                     input[monkey.if_false].items.push(newwlevel);
                 }
-
-                activity[i] += 1;
             }
             input[i].items.clear();
         }
