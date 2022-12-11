@@ -37,9 +37,8 @@ fn parse(input: &'static str) -> (Vec<Monkey>, usize) {
                 .collect();
 
             let op = lines.next().unwrap();
-            let nop = op
+            let nop = op[21..]
                 .bytes()
-                .filter(|c| (b'0'..=b'9').contains(c))
                 .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
 
             let op = move |old: usize| -> usize {
@@ -54,25 +53,16 @@ fn parse(input: &'static str) -> (Vec<Monkey>, usize) {
                 }
             };
 
-            let test = lines
-                .next()
-                .unwrap()
+            let test = lines.next().unwrap()[21..]
                 .bytes()
-                .filter(|c| (b'0'..=b'9').contains(c))
                 .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
 
-            let true_result = lines
-                .next()
-                .unwrap()
+            let true_result = lines.next().unwrap()[29..]
                 .bytes()
-                .filter(|c| (b'0'..=b'9').contains(c))
                 .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
 
-            let false_result = lines
-                .next()
-                .unwrap()
+            let false_result = lines.next().unwrap()[30..]
                 .bytes()
-                .filter(|c| (b'0'..=b'9').contains(c))
                 .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
 
             lcm = lcm * test / gcd(lcm, test);
@@ -105,11 +95,8 @@ fn solution(mut input: Vec<Monkey>, lcm: usize) -> usize {
     for _ in 0..10000 {
         for i in 0..mlen {
             let monkey = &input[i].clone();
-            let ilen = monkey.items.len();
 
-            for j in 0..ilen {
-                let item = monkey.items[j];
-
+            for &item in monkey.items.iter() {
                 let newwlevel = (monkey.operation)(item);
                 let newwlevel = newwlevel % lcm;
 
