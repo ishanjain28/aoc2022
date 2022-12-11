@@ -17,8 +17,9 @@ struct Monkey {
     if_false: usize,
 }
 
-fn parse(input: &'static str) -> Vec<Monkey> {
-    input
+fn parse(input: &'static str) -> (Vec<Monkey>, usize) {
+    let mut lcm = 1;
+    let output = input
         .split("\n\n")
         .filter(|c| !c.is_empty())
         .map(|set| {
@@ -74,6 +75,8 @@ fn parse(input: &'static str) -> Vec<Monkey> {
                 .filter(|c| (b'0'..=b'9').contains(c))
                 .fold(0, |a, x| (a * 10) + (x - b'0') as usize);
 
+            lcm = lcm * test / gcd(lcm, test);
+
             Monkey {
                 items: sitems,
                 operation: Rc::new(Box::new(op)),
@@ -81,24 +84,25 @@ fn parse(input: &'static str) -> Vec<Monkey> {
                 if_true: true_result,
                 if_false: false_result,
             }
-            //
         })
-        .collect()
+        .collect();
+
+    (output, lcm)
 }
 
 fn main() {
     for input in INPUTS.iter() {
         let output = parse(input);
-        let score = solution(output);
+        let score = solution(output.0, output.1);
         println!("{}", score);
     }
 }
 
-fn solution(mut input: Vec<Monkey>) -> usize {
+fn solution(mut input: Vec<Monkey>, lcm: usize) -> usize {
     let mlen = input.len();
     let mut activity = vec![0; mlen];
 
-    for _ in 0..20 {
+    for _ in 0..10000 {
         for i in 0..mlen {
             let monkey = &input[i].clone();
             let ilen = monkey.items.len();
@@ -107,12 +111,12 @@ fn solution(mut input: Vec<Monkey>) -> usize {
                 let item = monkey.items[j];
 
                 let newwlevel = (monkey.operation)(item);
-                let calmed_down_level = newwlevel / 3;
+                let newwlevel = newwlevel % lcm;
 
-                if calmed_down_level % monkey.div_by_test == 0 {
-                    input[monkey.if_true].items.push(calmed_down_level);
+                if newwlevel % monkey.div_by_test == 0 {
+                    input[monkey.if_true].items.push(newwlevel);
                 } else {
-                    input[monkey.if_false].items.push(calmed_down_level);
+                    input[monkey.if_false].items.push(newwlevel);
                 }
 
                 activity[i] += 1;
@@ -130,7 +134,15 @@ fn solution(mut input: Vec<Monkey>) -> usize {
 fn solution_bench(b: &mut test::Bencher) {
     b.iter(|| {
         let input = parse(INPUTS[1]);
-        let result = solution(input);
+        let result = solution(input.0, input.1);
         test::black_box(result);
     })
+}
+
+#[inline]
+const fn gcd(a: usize, b: usize) -> usize {
+    if b == 0 {
+        return a;
+    }
+    gcd(b, a % b)
 }
