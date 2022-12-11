@@ -46,7 +46,7 @@ fn parse(input: &'static str) -> (Vec<Monkey>, usize) {
                 .split(',')
                 .map(|c| {
                     c.bytes()
-                        .filter(|c| (b'0'..=b'9').contains(c))
+                        .filter(|&c| c != b' ')
                         .fold(0, |a, x| (a * 10) + (x - b'0') as usize)
                 })
                 .collect();
@@ -103,24 +103,26 @@ fn main() {
 
 fn solution(mut input: Vec<Monkey>, lcm: usize) -> usize {
     let mlen = input.len();
-    let mut activity = vec![0; mlen];
+    let mut activity = [0; 8];
 
     for _ in 0..10000 {
         for i in 0..mlen {
-            let monkey = input[i].clone();
-            activity[i] += monkey.items.len();
+            activity[i] += input[i].items.len();
+            let if_true = input[i].if_true;
+            let if_false = input[i].if_false;
+            let operation = input[i].operation;
+            let div_by_test = input[i].div_by_test;
 
-            for &item in monkey.items.iter() {
-                let newwlevel = monkey.operation.apply(item);
+            while let Some(item) = input[i].items.pop() {
+                let newwlevel = operation.apply(item);
                 let newwlevel = newwlevel % lcm;
 
-                if newwlevel % monkey.div_by_test == 0 {
-                    input[monkey.if_true].items.push(newwlevel);
+                if newwlevel % div_by_test == 0 {
+                    input[if_true].items.push(newwlevel);
                 } else {
-                    input[monkey.if_false].items.push(newwlevel);
+                    input[if_false].items.push(newwlevel);
                 }
             }
-            input[i].items.clear();
         }
     }
 
