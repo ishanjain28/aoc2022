@@ -4,3 +4,253 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+
+
+[[bin]]
+name = "d1-1"
+path = "src/day1/1.rs"
+
+
+[[bin]]
+name = "d1-2"
+path = "src/day1/2.rs"
+
+
+[[bin]]
+name = "d2-1"
+path = "src/day2/1.rs"
+
+
+[[bin]]
+name = "d2-2"
+path = "src/day2/2.rs"
+
+
+[[bin]]
+name = "d3-1"
+path = "src/day3/1.rs"
+
+
+[[bin]]
+name = "d3-2"
+path = "src/day3/2.rs"
+
+
+[[bin]]
+name = "d4-1"
+path = "src/day4/1.rs"
+
+
+[[bin]]
+name = "d4-2"
+path = "src/day4/2.rs"
+
+
+[[bin]]
+name = "d5-1"
+path = "src/day5/1.rs"
+
+
+[[bin]]
+name = "d5-2"
+path = "src/day5/2.rs"
+
+
+[[bin]]
+name = "d6-1"
+path = "src/day6/1.rs"
+
+
+[[bin]]
+name = "d6-2"
+path = "src/day6/2.rs"
+
+
+[[bin]]
+name = "d7-1"
+path = "src/day7/1.rs"
+
+
+[[bin]]
+name = "d7-2"
+path = "src/day7/2.rs"
+
+
+[[bin]]
+name = "d8-1"
+path = "src/day8/1.rs"
+
+
+[[bin]]
+name = "d8-2"
+path = "src/day8/2.rs"
+
+
+[[bin]]
+name = "d9-1"
+path = "src/day9/1.rs"
+
+
+[[bin]]
+name = "d9-2"
+path = "src/day9/2.rs"
+
+
+[[bin]]
+name = "d10-1"
+path = "src/day10/1.rs"
+
+
+[[bin]]
+name = "d10-2"
+path = "src/day10/2.rs"
+
+
+[[bin]]
+name = "d11-1"
+path = "src/day11/1.rs"
+
+
+[[bin]]
+name = "d11-2"
+path = "src/day11/2.rs"
+
+
+[[bin]]
+name = "d12-1"
+path = "src/day12/1.rs"
+
+
+[[bin]]
+name = "d12-2"
+path = "src/day12/2.rs"
+
+
+[[bin]]
+name = "d13-1"
+path = "src/day13/1.rs"
+
+
+[[bin]]
+name = "d13-2"
+path = "src/day13/2.rs"
+
+
+[[bin]]
+name = "d14-1"
+path = "src/day14/1.rs"
+
+
+[[bin]]
+name = "d14-2"
+path = "src/day14/2.rs"
+
+
+[[bin]]
+name = "d15-1"
+path = "src/day15/1.rs"
+
+
+[[bin]]
+name = "d15-2"
+path = "src/day15/2.rs"
+
+
+[[bin]]
+name = "d16-1"
+path = "src/day16/1.rs"
+
+
+[[bin]]
+name = "d16-2"
+path = "src/day16/2.rs"
+
+
+[[bin]]
+name = "d17-1"
+path = "src/day17/1.rs"
+
+
+[[bin]]
+name = "d17-2"
+path = "src/day17/2.rs"
+
+
+[[bin]]
+name = "d18-1"
+path = "src/day18/1.rs"
+
+
+[[bin]]
+name = "d18-2"
+path = "src/day18/2.rs"
+
+
+[[bin]]
+name = "d19-1"
+path = "src/day19/1.rs"
+
+
+[[bin]]
+name = "d19-2"
+path = "src/day19/2.rs"
+
+
+[[bin]]
+name = "d20-1"
+path = "src/day20/1.rs"
+
+
+[[bin]]
+name = "d20-2"
+path = "src/day20/2.rs"
+
+
+[[bin]]
+name = "d21-1"
+path = "src/day21/1.rs"
+
+
+[[bin]]
+name = "d21-2"
+path = "src/day21/2.rs"
+
+
+[[bin]]
+name = "d22-1"
+path = "src/day22/1.rs"
+
+
+[[bin]]
+name = "d22-2"
+path = "src/day22/2.rs"
+
+
+[[bin]]
+name = "d23-1"
+path = "src/day23/1.rs"
+
+
+[[bin]]
+name = "d23-2"
+path = "src/day23/2.rs"
+
+
+[[bin]]
+name = "d24-1"
+path = "src/day24/1.rs"
+
+
+[[bin]]
+name = "d24-2"
+path = "src/day24/2.rs"
+
+
+[[bin]]
+name = "d25-1"
+path = "src/day25/1.rs"
+
+
+[[bin]]
+name = "d25-2"
+path = "src/day25/2.rs"
