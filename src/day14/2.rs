@@ -6,7 +6,7 @@ const INPUTS: [&str; 2] = [include_str!("./sample.txt"), include_str!("./input.t
 const ROW_SIZE: usize = 700;
 const ARR_SIZE: usize = 490000;
 
-fn parse(input: &str) -> ([Node; ARR_SIZE], usize) {
+fn parse(input: &str) -> [Node; ARR_SIZE] {
     let mut grid = [Node::Empty; ARR_SIZE];
     let mut lowest = 0;
 
@@ -51,7 +51,7 @@ fn parse(input: &str) -> ([Node; ARR_SIZE], usize) {
         grid[(lowest + 2) * ROW_SIZE + i] = Node::Rock;
     }
 
-    (grid, lowest + 2)
+    grid
 }
 
 #[derive(Debug, Copy, Eq, PartialEq, Clone)]
@@ -61,48 +61,32 @@ enum Node {
     Sand,
 }
 
-fn solution((mut input, lowest): ([Node; ARR_SIZE], usize)) -> usize {
+fn solution(mut input: [Node; ARR_SIZE]) -> usize {
     let mut count = 1; // Include the source of sand in this count
 
     loop {
         let (mut px, mut py) = (500, 0);
-        let mut pmoved = false;
 
         loop {
-            if py >= lowest {
-                input[py * ROW_SIZE + px] = Node::Empty;
-                break;
-            }
-
-            let moved = if input[(py + 1) * ROW_SIZE + px] == Node::Empty {
+            if input[(py + 1) * ROW_SIZE + px] == Node::Empty {
                 py += 1;
-                true
             } else if input[(py + 1) * ROW_SIZE + px - 1] == Node::Empty {
                 py += 1;
                 px -= 1;
-                true
             } else if input[(py + 1) * ROW_SIZE + px + 1] == Node::Empty {
                 py += 1;
                 px += 1;
-                true
-            } else {
-                false
-            };
-
-            if moved {
-                pmoved = true;
             } else {
                 break;
-            }
+            };
         }
 
-        if pmoved {
-            input[py * ROW_SIZE + px] = Node::Sand;
-            count += 1;
-        } else {
-            input[py * ROW_SIZE + px] = Node::Empty;
+        if px == 500 && py == 0 {
             break;
         }
+
+        input[py * ROW_SIZE + px] = Node::Sand;
+        count += 1;
     }
 
     count

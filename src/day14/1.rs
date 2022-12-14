@@ -78,13 +78,12 @@ fn solution((mut input, lowest): ([Node; ARR_SIZE], usize)) -> usize {
             };
         }
 
-        if py < lowest {
-            input[py * ROW_SIZE + px] = Node::Sand;
-            count += 1;
-        } else {
-            input[py * ROW_SIZE + px] = Node::Empty;
+        if py >= lowest {
             break;
         }
+
+        input[py * ROW_SIZE + px] = Node::Sand;
+        count += 1;
     }
 
     count
