@@ -62,31 +62,36 @@ enum Node {
 }
 
 fn solution(mut input: [Node; ARR_SIZE]) -> usize {
-    let mut count = 1; // Include the source of sand in this count
+    let mut count = 0;
+    let mut stack = Vec::with_capacity(ROW_SIZE);
+    let (mut px, mut py) = (500, 0);
 
     loop {
-        let (mut px, mut py) = (500, 0);
-
-        loop {
-            if input[(py + 1) * ROW_SIZE + px] == Node::Empty {
-                py += 1;
-            } else if input[(py + 1) * ROW_SIZE + px - 1] == Node::Empty {
-                py += 1;
-                px -= 1;
-            } else if input[(py + 1) * ROW_SIZE + px + 1] == Node::Empty {
-                py += 1;
-                px += 1;
-            } else {
-                break;
-            };
-        }
-
-        if px == 500 && py == 0 {
+        if py + 1 >= ROW_SIZE {
             break;
         }
 
-        input[py * ROW_SIZE + px] = Node::Sand;
-        count += 1;
+        let k = (py + 1) * ROW_SIZE + px;
+
+        (px, py) = if input[k] == Node::Empty {
+            stack.push((px, py));
+            (px, py + 1)
+        } else if input[k - 1] == Node::Empty {
+            stack.push((px, py));
+            (px - 1, py + 1)
+        } else if input[k + 1] == Node::Empty {
+            stack.push((px, py));
+
+            (px + 1, py + 1)
+        } else {
+            input[py * ROW_SIZE + px] = Node::Sand;
+            count += 1;
+
+            match stack.pop() {
+                Some(v) => v,
+                None => break,
+            }
+        };
     }
 
     count

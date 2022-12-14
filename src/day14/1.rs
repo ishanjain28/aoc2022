@@ -60,30 +60,34 @@ enum Node {
 
 fn solution((mut input, lowest): ([Node; ARR_SIZE], usize)) -> usize {
     let mut count = 0;
+    let mut stack = Vec::with_capacity(ROW_SIZE);
 
+    let (mut px, mut py) = (500, 0);
     loop {
-        let (mut px, mut py) = (500, 0);
-
-        for y in 0..=lowest {
-            py = y;
-
-            if input[(py + 1) * ROW_SIZE + px] == Node::Empty {
-                continue;
-            } else if input[(py + 1) * ROW_SIZE + px - 1] == Node::Empty {
-                px -= 1;
-            } else if input[(py + 1) * ROW_SIZE + px + 1] == Node::Empty {
-                px += 1;
-            } else {
-                break;
-            };
-        }
-
         if py >= lowest {
             break;
         }
+        let k = (py + 1) * ROW_SIZE + px;
 
-        input[py * ROW_SIZE + px] = Node::Sand;
-        count += 1;
+        (px, py) = if input[k] == Node::Empty {
+            stack.push((px, py));
+            (px, py + 1)
+        } else if input[k - 1] == Node::Empty {
+            stack.push((px, py));
+            (px - 1, py + 1)
+        } else if input[k + 1] == Node::Empty {
+            stack.push((px, py));
+
+            (px + 1, py + 1)
+        } else {
+            input[py * ROW_SIZE + px] = Node::Sand;
+            count += 1;
+
+            match stack.pop() {
+                Some(v) => v,
+                None => break,
+            }
+        };
     }
 
     count
