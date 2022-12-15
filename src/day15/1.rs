@@ -4,9 +4,12 @@ use std::collections::HashSet;
 
 extern crate test;
 
-const INPUTS: [&str; 2] = [include_str!("./sample.txt"), include_str!("./input.txt")];
+const INPUTS: [&[u8]; 2] = [
+    include_bytes!("./sample.txt"),
+    include_bytes!("./input.txt"),
+];
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, Ord, PartialEq, PartialOrd, Eq)]
 struct Sensor {
     sx: i32,
     sy: i32,
@@ -14,77 +17,91 @@ struct Sensor {
     by: i32,
 }
 
-fn parse(input: &str) -> Vec<Sensor> {
+fn parse(input: &[u8]) -> Vec<Sensor> {
     input
-        .lines()
-        .filter(|c| !c.is_empty())
-        .filter_map(|line| {
-            line.split_once(':').map(|(sensor, beacon)| {
-                let (sx, sy) = sensor
-                    .split_once(',')
-                    .map(|(x, y)| {
-                        let xneg = x.contains('-');
-                        let yneg = y.contains('-');
-                        let x = x
-                            .bytes()
-                            .filter(|c| (b'0'..=b'9').contains(c))
-                            .fold(0, |a, x| (a * 10) + (x - b'0') as i32);
-                        let y = y
-                            .bytes()
-                            .filter(|c| (b'0'..=b'9').contains(c))
-                            .fold(0, |a, x| (a * 10) + (x - b'0') as i32);
+        .split(|&c| c == b'\n')
+        .map(|line| {
+            let mut out = [0; 4];
+            let mut i = 0;
+            let mut num = 0;
+            let mut is_neg = false;
 
-                        (if xneg { -x } else { x }, if yneg { -y } else { y })
-                    })
-                    .unwrap();
-                let (bx, by) = beacon
-                    .split_once(',')
-                    .map(|(x, y)| {
-                        let xneg = x.contains('-');
-                        let yneg = y.contains('-');
-                        let x = x
-                            .bytes()
-                            .filter(|c| (b'0'..=b'9').contains(c))
-                            .fold(0, |a, x| (a * 10) + (x - b'0') as i32);
-                        let y = y
-                            .bytes()
-                            .filter(|c| (b'0'..=b'9').contains(c))
-                            .fold(0, |a, x| (a * 10) + (x - b'0') as i32);
+            for c in line
+                .iter()
+                .filter(|&c| (b'0'..=b'9').contains(c) || *c == b',' || *c == b'-' || *c == b':')
+            {
+                match c {
+                    b'-' => is_neg = true,
+                    b',' | b':' => {
+                        out[i] = if is_neg { -num } else { num };
 
-                        (if xneg { -x } else { x }, if yneg { -y } else { y })
-                    })
-                    .unwrap();
-                Sensor { sx, sy, bx, by }
-            })
+                        num = 0;
+                        is_neg = false;
+                        i += 1;
+                    }
+                    v => num = num * 10 + (v - b'0') as i32,
+                }
+            }
+            out[i] = if is_neg { -num } else { num };
+
+            Sensor {
+                sx: out[0],
+                sy: out[1],
+                bx: out[2],
+                by: out[3],
+            }
         })
         .collect()
 }
 
-fn solution(mut input: Vec<Sensor>, line: i32) -> usize {
-    let mut beacons = HashSet::new();
-    let mut set = HashSet::new();
+fn solution(input: Vec<Sensor>, line: i32) -> usize {
+    let mut ranges = Vec::with_capacity(500);
 
-    input.sort_unstable_by_key(|c| c.sx);
+    let mut nranges: Vec<(i32, i32)> = input
+        .iter()
+        .filter_map(|sensor| {
+            let distance = (sensor.sx - sensor.bx).abs() + (sensor.sy - sensor.by).abs();
+            // Covered area reduces as it moves further away from the center
+            // The covered area at line will be the manhatten distance - (distance between sensor
+            // and line)
+            let dy = distance - (sensor.sy - line).abs();
 
-    for Sensor { sx, sy, bx, by } in input {
-        if by == line {
-            beacons.insert(bx);
-        }
+            if dy < 0 {
+                None
+            } else {
+                Some((sensor.sx - dy, sensor.sx + dy))
+            }
+        })
+        .collect();
 
-        let area = (bx - sx).abs() + (by - sy).abs();
-        for ix in sx - area..=sx + area {
-            if inside((sx, sy), (ix, line)) <= area {
-                set.insert(ix);
-            };
+    nranges.sort_unstable();
+
+    for (start, end) in nranges {
+        if let Some((_, le)) = ranges.last_mut() {
+            if start <= *le {
+                // If ranges overlap, Edit the last range to extend till the limit of last range or
+                // the current range
+                *le = std::cmp::max(*le, end);
+            } else {
+                ranges.push((start, end));
+            }
+        } else {
+            ranges.push((start, end));
         }
     }
 
-    set.len() - beacons.len()
-}
+    let mut answer = 0;
+    for (s, e) in ranges {
+        answer += (e - s + 1) as usize;
+    }
 
-#[inline]
-const fn inside((sx, sy): (i32, i32), (px, py): (i32, i32)) -> i32 {
-    (sx - px).abs() + (sy - py).abs()
+    answer
+        - input
+            .into_iter()
+            .filter(|x| x.by == line)
+            .map(|x| x.bx)
+            .collect::<HashSet<i32>>()
+            .len()
 }
 
 fn main() {
