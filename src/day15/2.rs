@@ -6,12 +6,12 @@ const INPUTS: [&[u8]; 2] = [
     include_bytes!("./input.txt"),
 ];
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Sensor {
-    sx: i64,
-    sy: i64,
-
-    area: i64,
+    left: i64,
+    right: i64,
+    top: i64,
+    bottom: i64,
 }
 
 fn parse(input: &[u8]) -> Vec<Sensor> {
@@ -41,55 +41,70 @@ fn parse(input: &[u8]) -> Vec<Sensor> {
             }
             out[i] = if is_neg { -num } else { num };
 
+            let distance = (out[0] - out[2]).abs() + (out[1] - out[3]).abs();
+
+            let (s, r) = rotneg45cw(out[0], out[1]);
+
+            let (left, right) = (s - distance - 1, s + distance + 1);
+            let (top, bottom) = (r - distance - 1, r + distance + 1);
             Sensor {
-                sx: out[0],
-                sy: out[1],
-                area: (out[0] - out[2]).abs() + (out[1] - out[3]).abs(),
+                left,
+                right,
+                top,
+                bottom,
             }
         })
         .collect()
 }
 
-fn solution(input: Vec<Sensor>, line: i64) -> i64 {
-    for j in 0..=line {
-        let mut i = 0;
+fn solution(input: Vec<Sensor>) -> i64 {
+    let mut left = 0;
+    let mut right = 0;
 
-        'out: while i <= line {
-            for beacon in input.iter() {
-                if inside((beacon.sx, beacon.sy), (i, j)) <= beacon.area {
-                    let vgap = (j - beacon.sy).abs();
-                    let dx = (beacon.sx - i) + (beacon.area - vgap) + 1;
-                    i += dx;
-
-                    continue 'out;
-                }
+    'outer: for x in input.iter() {
+        for y in input.iter() {
+            if y.left == x.right && (x.top < y.bottom || y.top < x.bottom) {
+                left = y.left;
+                break 'outer;
             }
-
-            return i * 4000000 + j;
+        }
+    }
+    'outer: for x in input.iter() {
+        for y in input.iter() {
+            if y.top == x.bottom && (x.left < y.right || y.left < x.right) {
+                right = y.top;
+                break 'outer;
+            }
         }
     }
 
-    0
+    let (fx, fy) = rotneg45ccw(left, right);
+    4000000 * fx + fy
 }
 
 #[inline]
-const fn inside((sx, sy): (i64, i64), (px, py): (i64, i64)) -> i64 {
-    (sx - px).abs() + (sy - py).abs()
+const fn rotneg45ccw(x: i64, y: i64) -> (i64, i64) {
+    let a = (x + y) / 2;
+    (y - a, a)
+}
+
+#[inline]
+const fn rotneg45cw(x: i64, y: i64) -> (i64, i64) {
+    (-x + y, x + y)
 }
 
 fn main() {
-    let output = parse(INPUTS[0]);
-    let score = solution(output, 20);
-    println!("{}", score);
-    let output = parse(INPUTS[1]);
-    let score = solution(output, 4000000);
-    println!("{}", score);
+    for input in INPUTS.iter() {
+        let output = parse(input);
+        let score = solution(output);
+        println!("{}", score);
+    }
 }
 #[bench]
 fn solution_bench(b: &mut test::Bencher) {
     b.iter(|| {
         let input = parse(INPUTS[1]);
-        let result = solution(input, 4000000);
+        let result = solution(input);
         test::black_box(result);
     })
 }
