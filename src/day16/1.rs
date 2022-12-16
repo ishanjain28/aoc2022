@@ -8,7 +8,7 @@ const INPUTS: [&str; 2] = [include_str!("./sample.txt"), include_str!("./input.t
 
 #[derive(Clone, Debug, Ord, PartialEq, PartialOrd, Eq)]
 struct Node {
-    flow: i32,
+    flow: usize,
     idx: usize,
     leads_to: Vec<String>,
 }
@@ -25,10 +25,8 @@ fn parse(input: &'static str) -> HashMap<String, Node> {
                 ('A'..='Z').contains(&c) || ('0'..='9').contains(&c) || c == ',' || c == '='
             }) {
                 match c {
-                    'A'..='Z' => {
-                        node.push(c);
-                    }
-                    '0'..='9' => num = num * 10 + (c as u8 - b'0') as i32,
+                    'A'..='Z' => node.push(c),
+                    '0'..='9' => num = num * 10 + (c as u8 - b'0') as usize,
                     '=' | ',' => {
                         children.push(node.clone());
                         node.clear();
@@ -51,42 +49,88 @@ fn parse(input: &'static str) -> HashMap<String, Node> {
         .collect()
 }
 
-const MAX_TIME: i32 = 30;
+const MAX_TIME: usize = 30;
 
-fn solution(input: HashMap<String, Node>) -> i32 {
-    let mut choices = HashMap::with_capacity(50);
-    choices.insert((0, "AA".to_string()), (0, 0, 0u128));
+fn solution(input: HashMap<String, Node>) -> usize {
+    let n = input.len();
+    let mut grid = vec![vec![1000; n]; n];
 
-    for minute in 0..MAX_TIME {
-        let mut new_choices = HashMap::with_capacity(50);
+    for v in input.values() {
+        grid[v.idx][v.idx] = 0;
 
-        for (k, choice) in choices {
-            let new_valve = &k.1;
-            let ip = input.get(new_valve).unwrap();
-            let new_valve_idx = ip.idx;
+        for node in v.leads_to.iter() {
+            let idx = input.get(node).unwrap().idx;
 
-            let new_time = choice.0 + 1;
-            let mut new_release = choice.1;
-
-            for path in ip.leads_to.iter() {
-                let new_choice = (new_time, new_release, choice.2);
-
-                new_choices.insert((new_release, path.to_string()), new_choice);
-            }
-
-            if ip.flow > 0 && choice.2 & (1 << new_valve_idx) < 1 {
-                new_release += ip.flow * (MAX_TIME - minute - 1);
-
-                let new_choice = (new_time, new_release, choice.2 | (1 << new_valve_idx));
-
-                new_choices.insert((new_release, new_valve.to_string()), new_choice);
-            }
+            grid[v.idx][idx] = 1;
+            grid[idx][v.idx] = 1;
         }
-
-        choices = new_choices;
     }
 
-    choices.values().map(|c| c.1).max().unwrap()
+    // Floyd warshall
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                grid[i][j] = std::cmp::min(grid[i][k] + grid[k][j], grid[i][j]);
+            }
+        }
+    }
+
+    let posflowvalves: Vec<String> = input
+        .iter()
+        .filter(|(_, b)| b.flow > 0)
+        .map(|(a, _)| a)
+        .cloned()
+        .collect();
+
+    let mut memo = HashMap::new();
+
+    dfs(&grid, &input, &posflowvalves, "AA", 0, 0, &mut memo)
+}
+
+fn dfs<'a>(
+    grid: &[Vec<usize>],
+    input: &HashMap<String, Node>,
+    posflowvalves: &'a [String],
+    node: &'a str,
+    ctime: usize,
+    seen: usize,
+    memo: &mut HashMap<(&'a str, usize, usize), usize>,
+) -> usize {
+    let mut answer = 0;
+    let inode = input.get(node).unwrap();
+
+    if let Some(x) = memo.get(&(node, ctime, seen)) {
+        return *x;
+    }
+
+    for (neighbour, nnode) in posflowvalves
+        .iter()
+        .filter_map(|c| input.get(c).map(|x| (c, x)))
+    {
+        // only visit a  node if it's not seen
+        if seen & (1 << nnode.idx) == 0 {
+            let ctime = ctime + grid[inode.idx][nnode.idx] + 1;
+
+            if ctime <= MAX_TIME {
+                answer = std::cmp::max(
+                    answer,
+                    (MAX_TIME - ctime) * nnode.flow
+                        + dfs(
+                            grid,
+                            input,
+                            posflowvalves,
+                            neighbour,
+                            ctime,
+                            seen | (1 << nnode.idx),
+                            memo,
+                        ),
+                );
+            }
+        }
+    }
+
+    memo.insert((node, ctime, seen), answer);
+    answer
 }
 
 fn main() {
