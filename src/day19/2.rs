@@ -1,13 +1,14 @@
 #![feature(test)]
 extern crate test;
-use std::collections::HashMap;
+
+use std::collections::HashSet;
 
 const INPUTS: [&[u8]; 2] = [
     include_bytes!("./sample.txt"),
     include_bytes!("./input.txt"),
 ];
 
-fn parse(input: &[u8]) -> Vec<Vec<usize>> {
+fn parse(input: &[u8]) -> Vec<Vec<u16>> {
     input
         .split(|&b| b == b'\n')
         .filter(|c| !c.is_empty())
@@ -24,7 +25,7 @@ fn parse(input: &[u8]) -> Vec<Vec<usize>> {
                     continue;
                 }
 
-                out.push(set.iter().fold(0, |a, x| (a * 10) + (x - b'0') as usize));
+                out.push(set.iter().fold(0, |a, x| (a * 10) + (x - b'0') as u16));
             }
 
             out
@@ -32,158 +33,187 @@ fn parse(input: &[u8]) -> Vec<Vec<usize>> {
         .collect()
 }
 
-fn solution(input: Vec<Vec<usize>>) -> usize {
-    input
-        .iter()
-        .take(3)
-        .map(|ip| {
-            let mut memo = HashMap::new();
-            solve(&mut memo, ip, (0, 0, 0, 0), (1, 0, 0, 0), 0)
-        })
-        .product()
+fn solution(input: Vec<Vec<u16>>) -> u16 {
+    input.iter().take(3).map(|ip| dfs(ip)).product()
 }
 
-type Store = (usize, usize, usize, usize);
+const UPTO_MINUTE: u16 = 32;
 
-const UPTO_MINUTE: usize = 32;
+#[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
+struct State {
+    ore: u16,
+    clay: u16,
+    obsidian: u16,
+    geodes: u16,
 
-fn solve(
-    memo: &mut HashMap<(usize, Store, Store), usize>,
-    costs: &[usize],
-    (mut ia, mut ib, ic, id): Store,
-    (ra, rb, rc, rd): Store,
-    m: usize,
-) -> usize {
-    if m >= UPTO_MINUTE {
-        return id;
-    }
+    ore_miners: u16,
+    clay_miners: u16,
+    obsidian_miners: u16,
+    geode_miners: u16,
 
-    if let Some(v) = memo.get(&(m, (ia, ib, ic, id), (ra, rb, rc, rd))) {
-        return *v;
-    }
+    minute: u16,
+}
 
-    let maximum_ore = std::cmp::max(
-        std::cmp::max(costs[1], costs[2]),
-        std::cmp::max(costs[3], costs[5]),
-    );
+fn dfs(costs: &[u16]) -> u16 {
+    let maximum_ore = costs[1].max(costs[2]).max(costs[3]).max(costs[5]);
     let maximum_clay = costs[4];
     let maximum_obsidian = costs[6];
 
+    let mut map = [0; UPTO_MINUTE as usize];
     let mut answer = 0;
-    for min in m..=UPTO_MINUTE {
-        let oia = ia;
-        let oib = ib;
+    let mut set = HashSet::with_capacity(100000);
+    let mut stack = Vec::with_capacity(100000);
+    stack.push(State {
+        ore: 0,
+        clay: 0,
+        obsidian: 0,
+        geodes: 0,
+        ore_miners: 1,
+        clay_miners: 0,
+        obsidian_miners: 0,
+        geode_miners: 0,
+        minute: 0,
+    });
 
-        let mut built_a_robot = false;
-
-        // Geode robot
-        let [ore, _, obsidian] = find_cost(costs, 3);
-        let count = std::cmp::min(ia / ore, ic / obsidian);
-        let remain_ia = ia - (count * ore);
-        let remain_ic = ic - (count * obsidian);
-
-        if count > 0 {
-            built_a_robot = true;
-        }
-
-        answer = std::cmp::max(
-            answer,
-            solve(
-                memo,
-                costs,
-                (remain_ia + ra, ib + rb, remain_ic + rc, id + rd),
-                (ra, rb, rc, rd + count),
-                min + 1,
-            ),
-        );
-
-        if built_a_robot {
+    while let Some(ls) = stack.pop() {
+        if ls.minute >= UPTO_MINUTE {
+            answer = std::cmp::max(answer, ls.geodes);
             continue;
         }
 
-        // Obsidian robot
-        if rc < maximum_obsidian {
-            let [ore, clay, _] = find_cost(costs, 2);
-            while ia >= ore && ib >= clay {
-                ia -= ore;
-                ib -= clay;
-                answer = std::cmp::max(
-                    answer,
-                    solve(
-                        memo,
-                        costs,
-                        (ia + ra, ib + rb, ic + rc, id + rd),
-                        (ra, rb, rc + 1, rd),
-                        min + 1,
-                    ),
-                );
-            }
-            built_a_robot = true;
-            ia = oia;
-            ib = oib;
+        // Break off if there is not enough time to catch up to current leader
+        // given the time left
+        if ls.geodes < map[ls.minute as usize] {
+            continue;
+        } else {
+            map[ls.minute as usize] = std::cmp::max(map[ls.minute as usize], ls.geodes)
         }
 
-        if rb < maximum_clay {
-            let [ore, _, _] = find_cost(costs, 1);
-            while ia >= ore {
-                ia -= ore;
-                answer = std::cmp::max(
-                    answer,
-                    solve(
-                        memo,
-                        costs,
-                        (ia + ra, ib + rb, ic + rc, id + rd),
-                        (ra, rb + 1, rc, rd),
-                        min + 1,
-                    ),
-                );
-            }
-            ia = oia;
-            built_a_robot = true;
+        if set.contains(&ls) {
+            continue;
+        } else {
+            set.insert(ls);
         }
 
-        // Make robots
-        if ra < maximum_ore {
-            let [ore, _, _] = find_cost(costs, 0);
-            while ia >= ore {
-                ia -= ore;
-                answer = std::cmp::max(
-                    answer,
-                    solve(
-                        memo,
-                        costs,
-                        (ia + ra, ib + rb, ic + rc, id + rd),
-                        (ra + 1, rb, rc, rd),
-                        min + 1,
-                    ),
-                );
-            }
-            ia = oia;
-            built_a_robot = true;
-        }
+        for min in ls.minute..=UPTO_MINUTE {
+            let mut built_a_robot = false;
+            {
+                // Geode Robot
+                let [ore, _, obsidian] = find_cost(costs, 3);
+                let count = std::cmp::min(ls.ore / ore, ls.obsidian / obsidian);
+                let remain_ia = ls.ore - (count * ore);
+                let remain_ic = ls.obsidian - (count * obsidian);
 
-        if !built_a_robot {
-            // Increase resource without doing any thing else
-            answer = std::cmp::max(
-                answer,
-                solve(
-                    memo,
-                    costs,
-                    (ia + ra, ib + rb, ic + rc, id + rd),
-                    (ra, rb, rc, rd),
-                    min + 1,
-                ),
-            );
+                stack.push(State {
+                    ore: remain_ia + ls.ore_miners,
+                    clay: ls.clay + ls.clay_miners,
+                    obsidian: remain_ic + ls.obsidian_miners,
+                    geodes: ls.geodes + ls.geode_miners,
+                    minute: min + 1,
+                    geode_miners: ls.geode_miners + count,
+
+                    ..ls
+                });
+                if count > 0 {
+                    continue;
+                }
+            }
+
+            {
+                // Obsidian Miners
+                if ls.obsidian_miners < maximum_obsidian && ls.clay_miners < maximum_clay {
+                    let [ore, clay, _] = find_cost(costs, 2);
+                    let mut ia = ls.ore;
+                    let mut ib = ls.clay;
+
+                    while ia >= ore && ib >= clay {
+                        ia -= ore;
+                        ib -= clay;
+
+                        stack.push(State {
+                            ore: ia + ls.ore_miners,
+                            clay: ib + ls.clay_miners,
+                            obsidian: ls.obsidian + ls.obsidian_miners,
+                            geodes: ls.geodes + ls.geode_miners,
+                            obsidian_miners: ls.obsidian_miners + 1,
+                            minute: min + 1,
+
+                            ..ls
+                        });
+                    }
+                    built_a_robot = true;
+                }
+            }
+
+            {
+                if ls.clay_miners < maximum_clay {
+                    let [ore, _, _] = find_cost(costs, 1);
+                    let mut ia = ls.ore;
+
+                    while ia >= ore {
+                        ia -= ore;
+
+                        stack.push(State {
+                            ore: ia + ls.ore_miners,
+                            clay: ls.clay + ls.clay_miners,
+                            obsidian: ls.obsidian + ls.obsidian_miners,
+                            geodes: ls.geodes + ls.geode_miners,
+                            clay_miners: ls.clay_miners + 1,
+                            minute: min + 1,
+
+                            ..ls
+                        });
+                    }
+                    built_a_robot = true;
+                }
+            }
+
+            {
+                // Make robots
+                if ls.ore_miners < maximum_ore {
+                    let [ore, _, _] = find_cost(costs, 0);
+                    let mut ia = ls.ore;
+
+                    while ia >= ore {
+                        ia -= ore;
+
+                        stack.push(State {
+                            ore: ia + ls.ore_miners,
+                            clay: ls.clay + ls.clay_miners,
+                            obsidian: ls.obsidian + ls.obsidian_miners,
+                            geodes: ls.geodes + ls.geode_miners,
+                            ore_miners: ls.ore_miners + 1,
+                            minute: min + 1,
+
+                            ..ls
+                        });
+                    }
+                    built_a_robot = true;
+                }
+            }
+
+            {
+                // Go on without making a robot
+                if !built_a_robot {
+                    stack.push(State {
+                        ore: ls.ore + ls.ore_miners,
+                        clay: ls.clay + ls.clay_miners,
+                        obsidian: ls.obsidian + ls.obsidian_miners,
+                        geodes: ls.geodes + ls.geode_miners,
+                        minute: min + 1,
+
+                        ..ls
+                    });
+                }
+            }
         }
     }
-
-    memo.insert((m, (ia, ib, ic, id), (ra, rb, rc, rd)), answer);
 
     answer
 }
 
 #[inline]
-const fn find_cost(costs: &[usize], i: usize) -> [usize; 3] {
+const fn find_cost(costs: &[u16], i: u16) -> [u16; 3] {
     match i {
         0 => [costs[1], 0, 0],
         1 => [costs[2], 0, 0],
