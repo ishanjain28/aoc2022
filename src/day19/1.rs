@@ -1,7 +1,7 @@
 #![feature(test)]
 extern crate test;
 
-use std::collections::{BinaryHeap, HashSet};
+use std::collections::HashSet;
 
 const INPUTS: [&[u8]; 2] = [
     include_bytes!("./sample.txt"),
@@ -224,7 +224,7 @@ const fn find_cost(costs: &[u16], i: u16) -> [u16; 3] {
 }
 
 fn main() {
-    for input in INPUTS.iter().take(1) {
+    for input in INPUTS.iter() {
         let output = parse(input);
         let score = solution(output);
         println!("{}", score);
